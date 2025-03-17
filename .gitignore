@@ -44,5 +44,6 @@ testem.log
 Thumbs.db
 
 #---- start project files ----
-/dialysis-app.angular/*
-/dialysis-app.node_modules/*
+./dialysis-app.angular/*
+/dialysis-app/.angular/cache/*
+/dialysis-app/node_modules/*
