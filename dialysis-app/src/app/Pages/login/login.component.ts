@@ -1,9 +1,7 @@
 import { Component } from '@angular/core';
 import {FormsModule} from '@angular/forms';
-import {Button, ButtonDirective} from 'primeng/button';
-import {InputText} from 'primeng/inputtext';
+import {Button} from 'primeng/button';
 import {DropdownModule} from 'primeng/dropdown';
-import {Select} from 'primeng/select';
 import {NgForOf} from '@angular/common';
 
 @Component({
@@ -22,13 +20,13 @@ import {NgForOf} from '@angular/common';
   styleUrl: './login.component.scss'
 })
 export class LoginComponent {
-  email: string = '';
-  password: string = '';
+  email = '';
+  password = '';
   loginTypes = [
     { loginType: 'Patient' },
     { loginType: 'Provider' }
   ];
-  selectedLoginType: string = '';
+  selectedLoginType = '';
 
   onSubmit() {
     console.log('Logging in with:', this.email, this.password);

@@ -14,5 +14,5 @@ import {Image} from 'primeng/image';
   styleUrls: ['./graphing.component.scss']
 })
 export class GraphingComponent {
-  @Input() selection: number = 0;
+  @Input() selection = 0;
 }

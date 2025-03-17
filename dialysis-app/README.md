@@ -42,6 +42,17 @@ Within this we also have the following directories:
 
 ---
 
+## Environment Setup
+- **Node.js** - Install Node.js from [here](https://nodejs.org/en/download/).
+  - personally I use [nvm](https://github.com/nvm-sh/nvm) to manage my node versions
+- **Angular CLI** - Install Angular CLI globally by running ```npm install -g @angular/cli```.
+
 ## To Run
 
+- **Setup** - CD into this dir and run ```npm install```
 - **Run Start Script** - Run ```ng start```
+
+
+## Developer notes
+- angular is a bit tricky to get started with. 
+  - I would recommend going through the [angular docs](https://angular.io/docs) to get a better understanding of how angular works
