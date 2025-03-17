@@ -42,3 +42,7 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+#---- start project files ----
+./dialysis-app.angular/*
+./dialysis-app.node_modules/*
