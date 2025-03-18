@@ -1,20 +1,10 @@
+<app-nav-bar></app-nav-bar>
+<body>
 <div class="container-fluid">
-    <div class="row vh-100">
-        <!-- Left Panel -->
-<!--        <div class="col-md-6 bg-light d-flex flex-column p-3">-->
-<!--            <h4>Provider Portal</h4>-->
-<!--            <input type="text" class="form-control mb-3" placeholder="Search" />-->
-<!--            <div class="flex-grow-1 border p-2 overflow-auto">-->
-<!--                &lt;!&ndash; Placeholder for patient list &ndash;&gt;-->
-<!--                <div class="border p-2 mb-2">Patient Card 1</div>-->
-<!--                <div class="border p-2 mb-2">Patient Card 2</div>-->
-<!--                <div class="border p-2 mb-2">Patient Card 3</div>-->
-<!--            </div>-->
-<!--        </div>-->
+    <div class="row">
         <div class="col-md-6 d-flex flex-column p-3">
-            <h4>Provider Portal</h4>
             <input type="text" pInputText class="form-control mb-3" placeholder="Search" (input)="onFilter($event)" />
-            <p-table #dt [value]="patients" selectionMode="single" [(selection)]="selectedPatients" [paginator]="true" [rows]="10" [sortField]="'name'" [sortOrder]="1">
+            <p-table #dt [value]="patients" selectionMode="single" [(selection)]="selectedPatients" [paginator]="true" [rows]="8" [sortField]="'name'" [sortOrder]="1">
                 <ng-template pTemplate="header">
                     <tr>
                         <th pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
@@ -59,3 +49,7 @@
         </div>
     </div>
 </div>
+</body>
+<!--<footer>-->
+<!--    <p>footer</p>-->
+<!--</footer>-->
