@@ -6,8 +6,6 @@ import {Image} from 'primeng/image';
   selector: 'app-graphing',
   standalone: true,
   imports: [
-    NgOptimizedImage,
-    Image,
     NgIf
   ],
   templateUrl: './graphing.component.html',
