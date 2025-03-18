@@ -1,1 +1,37 @@
-<p>provider-portal works!</p>
+<div class="container-fluid">
+    <div class="row vh-100">
+        <!-- Left Panel -->
+        <div class="col-md-6 bg-light d-flex flex-column p-3">
+            <h4>Provider Portal</h4>
+            <input type="text" class="form-control mb-3" placeholder="Search" />
+            <div class="flex-grow-1 border p-2 overflow-auto">
+                <!-- Placeholder for patient list -->
+                <div class="border p-2 mb-2">Patient Card 1</div>
+                <div class="border p-2 mb-2">Patient Card 2</div>
+                <div class="border p-2 mb-2">Patient Card 3</div>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="col-md-6 bg-light d-flex flex-column">
+            <!-- Tabbed Card -->
+            <div class="flex-grow-1 p-3">
+                <p-tabView [activeIndex]="activeIndex">
+                    <p-tabPanel header="Patient Data">
+                        <div class="border p-3">Patient Data Content</div>
+                    </p-tabPanel>
+                    <p-tabPanel header="New Data">
+                        <div class="border p-3">New Data Content</div>
+                    </p-tabPanel>
+                </p-tabView>
+            </div>
+
+            <!-- Notifications Section -->
+            <div class="card bg-white p-3 border" style="height: 20%;">
+                <div class="card-body">
+                    <app-notifications></app-notifications>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
