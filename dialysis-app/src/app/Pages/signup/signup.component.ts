@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import {Button} from "primeng/button";
 import {FormsModule, ReactiveFormsModule} from "@angular/forms";
-import {NgForOf} from "@angular/common";
+import {NgForOf, NgOptimizedImage} from "@angular/common";
 
 @Component({
   selector: 'app-signup',
@@ -9,7 +9,8 @@ import {NgForOf} from "@angular/common";
         Button,
         FormsModule,
         NgForOf,
-        ReactiveFormsModule
+        ReactiveFormsModule,
+        NgOptimizedImage
     ],
   templateUrl: './signup.component.html',
   styleUrl: './signup.component.scss'
