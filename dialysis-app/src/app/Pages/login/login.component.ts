@@ -38,7 +38,7 @@ export class LoginComponent {
   //TODO: add route guards to prevent unauthorized access to patient and provider portals
   onSubmit() {
     console.log('Logging in with:', this.email, this.password);
-    alert(`Login Attempt: ${this.email}`);
+    // alert(`Login Attempt: ${this.email}`);
     if (this.selectedLoginType === 'Patient')
       this.router.navigate(['/patient-portal']);
     else if (this.selectedLoginType === 'Provider'){

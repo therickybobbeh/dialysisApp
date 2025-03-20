@@ -5,6 +5,7 @@ import {TableModule} from "primeng/table";
 import {InputText} from "primeng/inputtext";
 import { PatientTableCard} from "../../Models/tables";
 import {NavBarComponent} from "../../Components/nav-bar/nav-bar.component";
+import {NgStyle} from "@angular/common";
 
 @Component({
   selector: 'app-provider-portal',
@@ -14,7 +15,8 @@ import {NavBarComponent} from "../../Components/nav-bar/nav-bar.component";
     NotificationsComponent,
     TableModule,
     InputText,
-    NavBarComponent
+    NavBarComponent,
+    NgStyle
   ],
   templateUrl: './provider-portal.component.html',
   styleUrl: './provider-portal.component.scss'
