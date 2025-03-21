@@ -1,0 +1,2 @@
+2025-03-20 17:07:07,081 - ERROR - Unhandled exception: 'Settings' object has no attribute 'REFRESH_SECRET_KEY'
+2025-03-20 17:19:07,673 - ERROR - Unhandled exception: 'Settings' object has no attribute 'REFRESH_SECRET_KEY'

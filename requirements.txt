@@ -1,0 +1,11 @@
+fastapi[standard]==0.115.11
+pydantic==2.10.6
+pydantic-settings==2.2.1
+SQLAlchemy==2.0.28
+passlib==1.7.4
+python-jose==3.3.0
+python-dotenv==1.0.0
+locust==2.15.1
+argon2-cffi>=21.3.0  #  Replaced bcrypt with Argon2
+psycopg2-binary>=2.9.9  # PostgreSQL database driver
+alembic==1.10.3 # for data migrations
