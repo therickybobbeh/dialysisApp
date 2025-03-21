@@ -1,6 +1,9 @@
 # PeritonealDialysisApp
 Peritoneal Dialysis (PD) management application
 
+![Login page](https://github.gatech.edu/lalkhalil3/PeritonealDialysisApp/assets/90599/d280a85d-a77a-4ade-87fd-a0ff0eb8ab43)
+
+
 1. Project Overview
 The Peritoneal Dialysis (PD) Management App is designed to help patients and providers monitor and manage peritoneal dialysis treatment. The application allows patients to log their health data, provides analytics for trend monitoring, and enables providers to make informed treatment decisions.
 
