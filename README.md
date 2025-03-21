@@ -114,4 +114,5 @@ to stop the container run:
 docker-compose down
 
 ```
+![Docker containers](https://github.gatech.edu/lalkhalil3/PeritonealDialysisApp/assets/90599/08b4ebd4-c7df-4554-a210-911985eb7e31)
 
