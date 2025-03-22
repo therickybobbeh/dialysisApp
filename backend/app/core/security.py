@@ -8,7 +8,7 @@ from app.db.models.user import User
 from sqlalchemy.orm import Session
 from app.core.logging_config import logger
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Annotated
 from argon2.exceptions import VerifyMismatchError
 
 #  Initialize Argon2 Password Hasher
@@ -91,3 +91,14 @@ def verify_jwt_token(token: str, secret_key: str):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid token",
         )
+
+class RoleChecker:
+  def __init__(self, allowed_roles):
+    self.allowed_roles = allowed_roles
+
+  def __call__(self, user: Annotated[User, Depends(get_current_user)]):
+    if user.role in self.allowed_roles:
+      return True
+    raise HTTPException(
+status_code=status.HTTP_401_UNAUTHORIZED,
+detail="You don't have enough permissions")
