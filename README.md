@@ -131,7 +131,7 @@ docker-compose down
 # Frontend- React URL: http://localhost:3000/
 
 
-# Flow diagram:
+# Architecture flow diagram:
 
 ```mermaid
 
