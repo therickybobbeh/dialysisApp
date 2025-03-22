@@ -6,7 +6,6 @@ from sqlalchemy.exc import IntegrityError
 from typing import List, Optional, Set ,Dict
 from datetime import datetime, timedelta
 from sqlalchemy.sql import func
-
 from app.db.session import get_db
 from app.db.models.dialysis import DialysisSession
 from app.db.schemas.dialysis import DialysisSessionCreate, DialysisSessionResponse
@@ -20,7 +19,6 @@ router = APIRouter(prefix="/dialysis", tags=["Dialysis"])
 
 #  Maintain active WebSocket connections
 active_connections: Set[WebSocket] = set()
-
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -36,7 +34,6 @@ async def websocket_endpoint(websocket: WebSocket):
         active_connections.remove(websocket)
         logger.warning(f"WebSocket client disconnected ({len(active_connections)} active clients)")
 
-
 async def notify_clients(data: dict):
     """Send updates to all connected WebSocket clients."""
     disconnected_clients = []
@@ -50,7 +47,6 @@ async def notify_clients(data: dict):
     #  Remove closed connections
     for conn in disconnected_clients:
         active_connections.remove(conn)
-
 
 #   Route: `POST /dialysis/sessions`
 @router.post("/sessions", response_model=DialysisSessionResponse)
@@ -106,11 +102,6 @@ async def log_dialysis_session(
         logger.error(f"Error logging dialysis session: {e}")
         raise HTTPException(status_code=500, detail="Failed to log dialysis session")
 
-
-
-
-
-
 #  Route: `GET /dialysis/sessions`
 @router.get("/sessions", response_model=List[DialysisSessionResponse])
 async def get_dialysis_sessions(
@@ -136,7 +127,6 @@ async def get_dialysis_sessions(
     except Exception as e:
         logger.error(f"Error retrieving dialysis sessions: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve dialysis sessions")
-
 
 #   Route: `GET /dialysis/provider-dashboard`
 @router.get("/provider-dashboard")
@@ -373,5 +363,3 @@ async def get_provider_live_updates(db: Session = Depends(get_db), user=Depends(
     )
 
     return recent_sessions if recent_sessions else {"message": "No recent updates found."}
-
-

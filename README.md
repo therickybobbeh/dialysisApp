@@ -99,6 +99,14 @@ npm run dev
 
 ``` 
 
+Hapi FHIR Server:
+
+```
+running at:
+
+http://localhost:8080
+```
+
 # To run the App as a Docker container:
 
 - Assuming you have docker installed and setup on your machince.

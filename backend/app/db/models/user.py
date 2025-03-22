@@ -9,7 +9,7 @@ class User(Base):
     name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
-    role = Column(String, nullable=False)
+    role = Column(String, nullable=False, default="patient")
 
     #  Relationships
     dialysis_sessions = relationship("DialysisSession", back_populates="patient", cascade="all, delete-orphan")

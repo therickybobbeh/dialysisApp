@@ -54,6 +54,16 @@ services:
       interval: 5s
       retries: 5
       timeout: 5s
+  hapi:
+    image: hapiproject/hapi
+    container_name: hapi_server
+    ports:
+      - "8080:8080"
+    environment:
+      - HAPI_FHIR_JPA_SERVER=HAPI_JPA_SERVER
+    volumes:
+      - ./data:/hapi_fhir/data
+    restart: always
 
 volumes:
   db-data:
