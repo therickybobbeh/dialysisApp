@@ -1,0 +1,56 @@
+<app-nav-bar></app-nav-bar>
+<body>
+<div class="d-flex flex-column min-vh-100">
+  <div class="container flex-grow-1">
+    <div class="row mb-2 mt-2">
+      <div class="col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <app-measurements
+                [selection] = "'pre'">
+            </app-measurements>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <app-measurements
+                    [selection] = "'post'">></app-measurements>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row mb-2">
+      <div class="col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <app-graphing [selection]="1"></app-graphing>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <app-graphing [selection]="2"></app-graphing>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row mb-2">
+      <div class="col-md-12">
+        <div class="card h-100">
+          <div class="card-body">
+            <app-notifications></app-notifications>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+<footer class="footer mt-auto py-3">
+  <div class="container">
+    <app-footer></app-footer>
+  </div>
+</footer>
