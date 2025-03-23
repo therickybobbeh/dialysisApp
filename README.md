@@ -4,6 +4,7 @@ Peritoneal Dialysis (PD) management application
 ![Login page](https://github.gatech.edu/lalkhalil3/PeritonealDialysisApp/assets/90599/d280a85d-a77a-4ade-87fd-a0ff0eb8ab43)
 
 
+
 1. Project Overview
 The Peritoneal Dialysis (PD) Management App is designed to help patients and providers monitor and manage peritoneal dialysis treatment. The application allows patients to log their health data, provides analytics for trend monitoring, and enables providers to make informed treatment decisions.
 
@@ -198,4 +199,36 @@ flowchart TD
     end
 
 
+```
+
+# Version control notes:
+# Git Merge Workflow (main → test → stage)
+
+This workflow ensures clean progression of code from development (`main`) to testing (`test`) and final staging (`stage`).
+
+---
+
+## 🔄 Merge Steps
+
+### 1. Merge your feature branch into `main`
+```sh
+git checkout main          # Switch to main branch
+git pull origin main       # Get latest changes
+git merge <your-branch>    # Merge your work
+git push origin main       # Push updated main
+```
+
+### 2. Merge `main` into `test`
+```sh
+git checkout test
+git pull origin test
+git merge main
+git push origin test
+```
+### 3. Merge `test` into `stage`
+```sh
+git checkout stage
+git pull origin stage
+git merge test
+git push origin stage
 ```
