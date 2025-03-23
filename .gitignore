@@ -47,3 +47,4 @@ Thumbs.db
 ./dialysis-app.angular/*
 /dialysis-app/.angular/cache/*
 /dialysis-app/node_modules/*
+/frontend/.next
