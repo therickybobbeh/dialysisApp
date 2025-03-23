@@ -16,7 +16,6 @@ export class PreDialysisTreatmentData extends FormGroup {
 export class PostDialysisTreatmentData extends FormGroup {
   constructor() {
     super({
-      preDialysisWeight: new FormControl<number | null>(null, Validators.required),
       postDialysisWeight: new FormControl<number | null>(null, Validators.required),
       effluentVolume: new FormControl<number | null>(null, Validators.required),
       sessionDuration: new FormControl<number | null>(null, Validators.required),

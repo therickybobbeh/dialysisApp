@@ -18,11 +18,14 @@ export class MeasurementsComponent implements OnInit {
   @Input() selection: 'pre' | 'post' | undefined;
   preDialysisData: PreDialysisTreatmentData = new PreDialysisTreatmentData();
   postDialysisData: PostDialysisTreatmentData = new PostDialysisTreatmentData();
+  measurementsTitle: string = '';
 
   ngOnInit() {
     if (this.selection === 'pre') {
+      this.measurementsTitle = 'Pre Dialysis'
       // add logic
     } else if (this.selection === 'post') {
+      this.measurementsTitle = 'Post Dialysis'
       // add logic
     }
   }
