@@ -1,48 +1,61 @@
 import { Component } from '@angular/core';
-import {FormsModule} from '@angular/forms';
-import {Button} from 'primeng/button';
-import {DropdownModule} from 'primeng/dropdown';
-import {NgForOf} from '@angular/common';
-import {MessageService} from "primeng/api";
-import { Router } from '@angular/router';
+import {Router, RouterLink} from '@angular/router';
+import { AuthService} from "../../Services/authentication.service";
+import {FormsModule} from "@angular/forms";
+import {Button} from "primeng/button";
+import {NgForOf} from "@angular/common";
 
 @Component({
   selector: 'app-login',
-  standalone: true,
+  templateUrl: './login.component.html',
   imports: [
     FormsModule,
     Button,
-    DropdownModule,
+    RouterLink,
     NgForOf
   ],
-  providers: [MessageService],
-  templateUrl: './login.component.html',
-  styleUrl: './login.component.scss'
+  styleUrls: ['./login.component.scss']
 })
 export class LoginComponent {
   email = '';
   password = '';
+  selectedLoginType = 'patient'; // default or whichever
+  loading = false;
+
+  // For the select dropdown
   loginTypes = [
-    { loginType: 'Patient' },
-    { loginType: 'Provider' }
+    { loginType: 'patient' },
+    { loginType: 'provider' },
+    // ...
   ];
-  selectedLoginType = '';
+
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) {}
+
+  onSubmit() {
+    this.loading = true;
+    this.authService.login(this.email, this.password)
+      .then(result => {
+        // result = { token, userId, role }
+        this.loading = false;
+        console.log('Login success!', result);
+        // If user is "provider", maybe navigate to a different dashboard:
+        if (result.userRole === 'provider') {
+          this.router.navigate(['/provider-dashboard']);
+        } else {
+          this.router.navigate(['/patient-dashboard']);
+        }
+      })
+      .catch(error => {
+        this.loading = false;
+        console.error('Login failed:', error);
+        alert('Login failed: ' + (error?.message || error));
+      });
+  }
 
   onForgotPassword() {
-    alert('Too bad');
-  }
-
-  constructor(private router: Router) {
-  }
-
-  //TODO: add route guards to prevent unauthorized access to patient and provider portals
-  onSubmit() {
-    console.log('Logging in with:', this.email, this.password);
-    // alert(`Login Attempt: ${this.email}`);
-    if (this.selectedLoginType === 'Patient')
-      this.router.navigate(['/patient-portal']);
-    else if (this.selectedLoginType === 'Provider'){
-        this.router.navigate(['/provider-portal']);
-    }
+    alert('Forgot Password logic goes here.');
   }
 }
