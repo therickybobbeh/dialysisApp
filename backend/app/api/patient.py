@@ -71,7 +71,7 @@ def patient_dashboard(db: Session = Depends(get_db), user: User = Depends(get_cu
         total_protein = sum(meal.protein_grams for meal in meals)
         avg_protein = total_protein / len(meals) if meals else 0
 
-        #  Compute weight & BP trends
+        #  Compute weight & BP trends // todo: need to abstract out to get pre and post
         weight_trend = [(s.session_date, s.post_weight) for s in sessions]
         bp_trend = [(s.session_date, s.post_systolic, s.post_diastolic) for s in sessions]
 
