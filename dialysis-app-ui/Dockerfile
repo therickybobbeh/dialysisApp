@@ -1,28 +1,18 @@
-# Stage 1: Build Angular App
-FROM node:18-alpine as builder
-
-# Set working directory
+# ---------- Stage 1: Build Angular app ----------
+FROM node:18 as builder
 WORKDIR /app
 
-# Copy package files and install dependencies
 COPY package*.json ./
 RUN npm install
+RUN npm install -g @angular/cli
 
-# Copy the rest of the app and build
 COPY . .
-RUN npm run build --prod
+RUN ng build --configuration=production
 
-# Stage 2: Serve App with NGINX
-FROM nginx:alpine
-
-# Copy built files from builder stage to nginx html folder
-COPY --from=builder /app/dist/your-angular-project-name /usr/share/nginx/html
-
-# Optional: Replace default nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Expose port
+# ---------- Stage 2: Final NGINX stage ----------
+FROM nginx:latest
+RUN chmod 644 /etc/nginx/conf.d/default.conf
+COPY ./nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/dist/dialysis-app/browser /usr/share/nginx/html
 EXPOSE 80
-
-# Start NGINX server
 CMD ["nginx", "-g", "daemon off;"]
