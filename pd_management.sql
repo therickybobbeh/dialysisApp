@@ -25,16 +25,16 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.dialysis_sessions (
-    id integer NOT NULL,
-    patient_id integer NOT NULL,
-    pre_weight double precision NOT NULL,
-    post_weight double precision NOT NULL,
-    pre_systolic integer NOT NULL,
-    pre_diastolic integer NOT NULL,
-    post_systolic integer NOT NULL,
-    post_diastolic integer NOT NULL,
-    effluent_volume double precision NOT NULL,
-    session_date timestamp without time zone NOT NULL
+      id integer NOT NULL,
+      patient_id integer NOT NULL,
+      session_type varchar NOT NULL,
+      session_id integer NOT NULL,
+      weight double precision NOT NULL,
+      diastolic integer NOT NULL,
+      systolic integer NOT NULL,
+      effluent_volume double precision NOT NULL,
+      session_date timestamp without time zone NOT NULL,
+      session_duration varchar
 );
 
 
@@ -161,20 +161,23 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 -- Data for Name: dialysis_sessions; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.dialysis_sessions (id, patient_id, pre_weight, post_weight, pre_systolic, pre_diastolic, post_systolic, post_diastolic, effluent_volume, session_date) FROM stdin;
-1	1	65.2	54	110	83	116	75	2.76	2025-02-18 20:18:35.525843
-2	1	75.8	61.9	115	74	112	78	2.6	2025-02-19 20:18:35.525843
-3	1	54.6	58	114	70	100	85	1.77	2025-02-12 20:18:35.525843
-4	1	54.6	68.1	115	81	116	71	1.9	2025-02-23 20:18:35.525843
-5	1	64.9	53.2	122	89	113	74	1.58	2025-02-13 20:18:35.525843
-6	2	62.9	48.2	122	78	116	72	2.35	2025-03-01 20:18:35.525843
-7	2	63.2	69.8	119	80	116	72	2.47	2025-03-07 20:18:35.525843
-8	2	59.3	49	127	74	107	79	2.19	2025-03-06 20:18:35.525843
-9	2	54.5	75.8	110	78	117	78	2.14	2025-02-11 20:18:35.525843
-10	2	65	72.4	121	75	117	67	1.98	2025-02-22 20:18:35.525843
-11	1	65.2	54	110	83	116	75	2.76	2025-03-15 18:08:04.694401
-12	1	65.2	54	111	83	116	75	2.76	2025-02-25 20:18:35.525843
-14	6	65.2	54	111	83	116	75	2.76	2025-02-26 20:18:35.525843
+COPY public.dialysis_sessions (
+                               id, patient_id, session_type, session_id, weight, diastolic, systolic,
+                               effluent_volume, session_date, session_duration
+    ) FROM stdin;
+1	1	hemodialysis	101	65.2	83	110	2.76	2025-02-18 20:18:35.525843	4 hours
+2	1	hemodialysis	102	75.8	74	115	2.6	2025-02-19 20:18:35.525843	4 hours
+3	1	hemodialysis	103	54.6	70	114	1.77	2025-02-12 20:18:35.525843	4 hours
+4	1	hemodialysis	104	54.6	81	115	1.9	2025-02-23 20:18:35.525843	4 hours
+5	1	hemodialysis	105	64.9	89	122	1.58	2025-02-13 20:18:35.525843	4 hours
+6	2	hemodialysis	106	62.9	78	122	2.35	2025-03-01 20:18:35.525843	4 hours
+7	2	hemodialysis	107	63.2	80	119	2.47	2025-03-07 20:18:35.525843	4 hours
+8	2	hemodialysis	108	59.3	74	127	2.19	2025-03-06 20:18:35.525843	4 hours
+9	2	hemodialysis	109	54.5	78	110	2.14	2025-02-11 20:18:35.525843	4 hours
+10	2	hemodialysis	110	65.0	75	121	1.98	2025-02-22 20:18:35.525843	4 hours
+11	1	hemodialysis	111	65.2	83	110	2.76	2025-03-15 18:08:04.694401	4 hours
+12	1	hemodialysis	112	65.2	83	111	2.76	2025-02-25 20:18:35.525843	4 hours
+14	6	hemodialysis	113	65.2	83	111	2.76	2025-02-26 20:18:35.525843	4 hours
 \.
 
 

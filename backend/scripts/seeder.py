@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 def seed_data():
     db = next(get_db())
 
-    #  Ensure Users Are Seeded
+    # Ensure Users Are Seeded
     if db.query(User).count() == 0:
         print("🌱 Seeding users table...")
         users = [
@@ -22,19 +22,19 @@ def seed_data():
         db.commit()
         print(" Users seeded successfully.")
 
-    #  Ensure Dialysis Sessions Are Seeded
+    # Ensure Dialysis Sessions Are Seeded
     if db.query(DialysisSession).count() == 0:
         print("🌱 Seeding dialysis_sessions table...")
         dialysis_sessions = [
             DialysisSession(
-                patient_id=1, pre_weight=65.2, post_weight=63.8,
-                pre_systolic=120, pre_diastolic=80, post_systolic=115, post_diastolic=75,
-                effluent_volume=2.0, session_date=datetime.utcnow() - timedelta(days=2)
+                patient_id=1, session_type="pre", session_id=1, weight=65.2,
+                diastolic=80, systolic=120, effluent_volume=2.0,
+                session_date=datetime.utcnow() - timedelta(days=2), session_duration="3 hours"
             ),
             DialysisSession(
-                patient_id=2, pre_weight=78.1, post_weight=76.5,
-                pre_systolic=130, pre_diastolic=85, post_systolic=125, post_diastolic=80,
-                effluent_volume=1.8, session_date=datetime.utcnow() - timedelta(days=1)
+                patient_id=2, session_type="post", session_id=2, weight=78.1,
+                diastolic=85, systolic=130, effluent_volume=1.8,
+                session_date=datetime.utcnow() - timedelta(days=1), session_duration="3.5 hours"
             ),
         ]
         db.add_all(dialysis_sessions)

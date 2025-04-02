@@ -51,19 +51,19 @@ async def notify_clients(data: dict):
 #   Route: `POST /dialysis/sessions`
 @router.post("/sessions", response_model=DialysisSessionResponse)
 async def log_dialysis_session(
-    session_data: DialysisSessionCreate, 
-    db: Session = Depends(get_db), 
-    user: User = Depends(get_current_user)
+        session_data: DialysisSessionCreate,
+        db: Session = Depends(get_db),
+        user: User = Depends(get_current_user)
 ):
     """Log a new dialysis session and notify clients."""
 
-    #  Check if patient exists
+    # Check if patient exists
     patient = db.query(User).filter(User.id == session_data.patient_id, User.role == "patient").first()
     if not patient:
         logger.error(f"Patient with ID {session_data.patient_id} does not exist.")
         raise HTTPException(status_code=400, detail="Invalid patient ID: Patient does not exist")
 
-    #  Check for duplicate session
+    # Check for duplicate session
     existing_session = (
         db.query(DialysisSession)
         .filter(
@@ -78,15 +78,15 @@ async def log_dialysis_session(
 
     try:
         new_session = DialysisSession(
-            patient_id=session_data.patient_id,  #  Use the provided patient_id
-            pre_weight=session_data.pre_weight,
-            post_weight=session_data.post_weight,
-            pre_systolic=session_data.pre_systolic,
-            pre_diastolic=session_data.pre_diastolic,
-            post_systolic=session_data.post_systolic,
-            post_diastolic=session_data.post_diastolic,
+            patient_id=session_data.patient_id,  # Use the provided patient_id
+            session_type=session_data.session_type,
+            session_id=session_data.session_id,
+            weight=session_data.weight,
+            diastolic=session_data.diastolic,
+            systolic=session_data.systolic,
             effluent_volume=session_data.effluent_volume,
             session_date=session_data.session_date,
+            session_duration=session_data.session_duration,
         )
 
         db.add(new_session)
@@ -95,8 +95,15 @@ async def log_dialysis_session(
 
         logger.info(f"Dialysis session logged successfully for patient {session_data.patient_id} on {new_session.session_date}")
 
+        # Notify clients about the new session
+        await notify_clients({"message": "New dialysis session logged", "session": new_session})
+
         return new_session
 
+    except IntegrityError as e:
+        db.rollback()
+        logger.error(f"Integrity error logging dialysis session: {e}")
+        raise HTTPException(status_code=400, detail="Integrity error: possible duplicate entry")
     except Exception as e:
         db.rollback()
         logger.error(f"Error logging dialysis session: {e}")
@@ -156,24 +163,29 @@ async def provider_dashboard(
         end_date = end_date if end_date else datetime.utcnow()
 
         #  Fetch dialysis session data
-        recent_sessions = (
-            db.query(
-                DialysisSession.patient_id,
-                func.count(DialysisSession.id).label("session_count"),
-                func.avg(DialysisSession.pre_weight).label("avg_pre_weight"),
-                func.avg(DialysisSession.post_weight).label("avg_post_weight"),
-                func.avg(DialysisSession.pre_systolic).label("avg_pre_systolic"),
-                func.avg(DialysisSession.pre_diastolic).label("avg_pre_diastolic"),
-                func.avg(DialysisSession.post_systolic).label("avg_post_systolic"),
-                func.avg(DialysisSession.post_diastolic).label("avg_post_diastolic"),
-                func.avg(DialysisSession.effluent_volume).label("avg_effluent"),
-            )
-            .filter(DialysisSession.patient_id.in_(patient_ids))
-            .filter(DialysisSession.session_date >= date_filter)
-            .filter(DialysisSession.session_date <= end_date)
-            .group_by(DialysisSession.patient_id)
-            .all()
-        )
+        recent_sessions = None
+        # recent_sessions = (
+        #     db.query(
+        #     DialysisSession.patient_id,
+        #     func.count(DialysisSession.id).label("session_count"),
+        #     func.avg(DialysisSession.pre_weight).label("avg_pre_weight"),
+        #     func.avg(DialysisSession.post_weight).label("avg_post_weight"),
+        #     func.avg(DialysisSession.pre_systolic).label("avg_pre_systolic"),
+        #     func.avg(DialysisSession.pre_diastolic).label("avg_pre_diastolic"),
+        #     func.avg(DialysisSession.post_systolic).label("avg_post_systolic"),
+        #     func.avg(DialysisSession.post_diastolic).label("avg_post_diastolic"),
+        #     func.avg(DialysisSession.effluent_volume).label("avg_effluent"),
+        #     func.avg(DialysisSession.weight).label("avg_weight"),
+        #     func.avg(DialysisSession.diastolic).label("avg_diastolic"),
+        #     func.avg(DialysisSession.systolic).label("avg_systolic"),
+        #     func.avg(DialysisSession.session_duration).label("avg_session_duration"),
+        #     )
+        #     .filter(DialysisSession.patient_id.in_(patient_ids))
+        #     .filter(DialysisSession.session_date >= date_filter)
+        #     .filter(DialysisSession.session_date <= end_date)
+        #     .group_by(DialysisSession.patient_id)
+        #     .all()
+        # )
 
         #  Process and flag high-risk patients
         flagged_patients = []
@@ -236,7 +248,7 @@ async def update_dialysis_session(
 ):
     """Allows a patient to update their dialysis session if entered incorrectly."""
 
-    #  Find the existing session
+    # Find the existing session
     session = db.query(DialysisSession).filter(
         DialysisSession.id == session_id,
         DialysisSession.patient_id == user.id  # Ensures patient can only edit their own session
@@ -246,14 +258,15 @@ async def update_dialysis_session(
         raise HTTPException(status_code=404, detail="Dialysis session not found")
 
     try:
-        #  Update fields
-        session.pre_weight = session_data.pre_weight
-        session.post_weight = session_data.post_weight
-        session.pre_systolic = session_data.pre_systolic
-        session.pre_diastolic = session_data.pre_diastolic
-        session.post_systolic = session_data.post_systolic
-        session.post_diastolic = session_data.post_diastolic
+        # Update fields
+        session.session_type = session_data.session_type
+        session.session_id = session_data.session_id
+        session.weight = session_data.weight
+        session.diastolic = session_data.diastolic
+        session.systolic = session_data.systolic
         session.effluent_volume = session_data.effluent_volume
+        session.session_date = session_data.session_date
+        session.session_duration = session_data.session_duration
 
         db.commit()
         db.refresh(session)
@@ -265,7 +278,6 @@ async def update_dialysis_session(
         db.rollback()
         logger.error(f"Error updating dialysis session {session_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to update dialysis session")
-    
 
 @router.get("/all-sessions", response_model=List[DialysisSessionResponse])
 async def get_all_dialysis_sessions(

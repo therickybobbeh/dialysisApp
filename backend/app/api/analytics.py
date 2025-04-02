@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 #  Fix Prefix to Avoid Route Conflicts
 router = APIRouter(prefix="/dialysis", tags=["Dialysis Analytics"])
 
+# todo: we need to map the pre and post sessions. the db changed a bit
 @router.get("/analytics")
 def dialysis_analytics(
     start_date: Optional[datetime] = None,
@@ -27,16 +28,19 @@ def dialysis_analytics(
 
     try:
         #  Aggregate patient dialysis trends
-        query = db.query(
-            DialysisSession.session_date,
-            func.avg(DialysisSession.pre_weight).label("avg_pre_weight"),
-            func.avg(DialysisSession.post_weight).label("avg_post_weight"),
-            func.avg(DialysisSession.pre_systolic).label("avg_pre_systolic"),
-            func.avg(DialysisSession.pre_diastolic).label("avg_pre_diastolic"),
-            func.avg(DialysisSession.post_systolic).label("avg_post_systolic"),
-            func.avg(DialysisSession.post_diastolic).label("avg_post_diastolic"),
-            func.avg(DialysisSession.effluent_volume).label("avg_effluent")
-        ).filter(DialysisSession.patient_id == user.id)
+        #TODO: Fix this query to get the 2 sessions, combine and then calculate the averages
+        # can use the pre and post fields
+        query = None;
+        # query = db.query(
+        #     DialysisSession.session_date,
+        #     func.avg(DialysisSession.pre_weight).label("avg_pre_weight"),
+        #     func.avg(DialysisSession.post_weight).label("avg_post_weight"),
+        #     func.avg(DialysisSession.pre_systolic).label("avg_pre_systolic"),
+        #     func.avg(DialysisSession.pre_diastolic).label("avg_pre_diastolic"),
+        #     func.avg(DialysisSession.post_systolic).label("avg_post_systolic"),
+        #     func.avg(DialysisSession.post_diastolic).label("avg_post_diastolic"),
+        #     func.avg(DialysisSession.effluent_volume).label("avg_effluent")
+        # ).filter(DialysisSession.patient_id == user.id)
 
         #  Apply date filters if provided
         if start_date:
