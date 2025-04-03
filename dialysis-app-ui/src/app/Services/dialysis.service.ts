@@ -34,6 +34,8 @@ export class DialysisService {
      * Accepts optional start_date, end_date as query params.
      */
     getDialysisSessions(start_date?: string, end_date?: string): Observable<DialysisSessionResponse[]> {
+        const token = localStorage.getItem('token'); // or this.token
+        const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
         let params = new HttpParams();
         if (start_date) {
             params = params.set('start_date', start_date);
@@ -41,9 +43,25 @@ export class DialysisService {
         if (end_date) {
             params = params.set('end_date', end_date);
         }
-
-        return this.http.get<DialysisSessionResponse[]>(`${this.baseUrl}/sessions`, { params });
+        return this.http.get<DialysisSessionResponse[]>(`${this.baseUrl}/sessions`, { headers, params });
     }
+    // /**
+    //  * GET /dialysis/sessions
+    //  * Retrieve dialysis sessions for the current patient (requires user.role = "patient").
+    //  * Accepts optional start_date, end_date as query params.
+    //  */
+    // getSessionsByDateRange(startDate: Date, endDate: Date): Observable<DialysisSessionResponse[]> {
+    //     const token = localStorage.getItem('token'); // or this.token
+    //     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+    //     let params = new HttpParams();
+    //     if (startDate) {
+    //         params = params.set('start_date', startDate.toISOString());
+    //     }
+    //     if (endDate) {
+    //         params = params.set('end_date', endDate.toISOString());
+    //     }
+    //     return this.http.get<DialysisSessionResponse[]>(`${this.baseUrl}/sessions`, { headers, params });
+    // }
 
     /**
      * GET /dialysis/provider-dashboard

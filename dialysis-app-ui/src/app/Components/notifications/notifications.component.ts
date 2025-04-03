@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import {DropdownModule} from "primeng/dropdown";
 import {DatePipe, NgClass, NgForOf} from "@angular/common";
 import {FormsModule} from "@angular/forms";
+import {Select} from "primeng/select";
 
 @Component({
   selector: 'app-notifications',
@@ -10,7 +11,8 @@ import {FormsModule} from "@angular/forms";
     NgClass,
     FormsModule,
     NgForOf,
-    DatePipe
+    DatePipe,
+    Select
   ],
   templateUrl: './notifications.component.html',
   styleUrl: './notifications.component.scss'

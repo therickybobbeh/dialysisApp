@@ -1,77 +1,95 @@
-import { Component, Input, OnInit } from '@angular/core';
-import { DialysisTreatmentData } from '../../Models/patientMeasurements';
-import { DialysisSessionResponse } from '../../Models/dialysis';
+import {AfterViewInit, Component, Input, OnDestroy, OnInit} from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { DialysisService } from '../../Services/dialysis.service';
-import { catchError, of, take } from 'rxjs';
-import {Card} from "primeng/card";
-import {PrimeTemplate} from "primeng/api";
-import {ReactiveFormsModule} from "@angular/forms";
-import {Calendar} from "primeng/calendar";
-import {InputText} from "primeng/inputtext";
-import {ButtonDirective, ButtonLabel} from "primeng/button";
-import {DropdownModule} from "primeng/dropdown";
-import {AuthService} from "../../Services/authentication.service";
+import { AuthService } from '../../Services/authentication.service';
+import { DialysisSessionResponse } from '../../Models/dialysis';
+import {catchError, of, Subscription, take} from 'rxjs';
+import { Calendar } from "primeng/calendar";
+import { DropdownModule } from "primeng/dropdown";
+import { Card } from "primeng/card";
+import { InputText } from "primeng/inputtext";
+import { ButtonDirective, ButtonLabel } from "primeng/button";
+import { DialysisTreatmentData } from '../../Models/patientMeasurements';
+import {DatePicker} from "primeng/datepicker";
+import {Select} from "primeng/select"; // Import the class
 
 @Component({
   selector: 'app-measurements',
   templateUrl: './measurements.component.html',
-  styleUrls: ['./measurements.component.scss'],
   imports: [
-    Card,
-    PrimeTemplate,
-    ReactiveFormsModule,
     Calendar,
+    DropdownModule,
+    ReactiveFormsModule,
+    Card,
     InputText,
     ButtonDirective,
     ButtonLabel,
-    DropdownModule
+    DatePicker,
+    Select
   ],
-  // ... imports array is in the template
+  styleUrls: ['./measurements.component.scss']
 })
-export class MeasurementsComponent implements OnInit {
+export class MeasurementsComponent implements OnInit, OnDestroy {
   @Input() selection: 'pre' | 'post' | undefined;
   allDialysisSessions: DialysisSessionResponse[] = [];
   measurementsTitle = 'Dialysis';
-
-  // This is your reactive form group
-  dialysisData: DialysisTreatmentData = new DialysisTreatmentData();
-
-  // Options for the Session Type dropdown
+  dialysisData: DialysisTreatmentData; // Use the class
   sessionTypes = [
-    { label: 'Pre',  value: 'pre' },
+    { label: 'Pre', value: 'pre' },
     { label: 'Post', value: 'post' }
   ];
-
   private currentPatientId: string = '';
+  private subscription = new Subscription;
 
+  constructor(
+      private fb: FormBuilder,
+      private dialysisService: DialysisService,
+      private authService: AuthService
+  ) {
+    this.dialysisData = new DialysisTreatmentData();
+  }
 
-  constructor(private dialysisService: DialysisService,
-              private  authService: AuthService) {}
 
 
   ngOnInit() {
-    // We might want to populate some fields from localStorage here
-    // e.g., this.dialysisData.patchValue({ patient_id: localStorage.getItem("user_id") });
-    // But we've removed the patient_id from the template, so do it behind the scenes:
     this.currentPatientId = this.authService.getUserID();
     this.dialysisData.patchValue({ patient_id: this.currentPatientId });
+    this.subscription.add(
+        this.dialysisData.get('session_date')?.valueChanges.subscribe(dateRange => {
+          if (dateRange && dateRange.length === 2) {
+            const [startDate, endDate] = dateRange;
+            this.fetchSessions(startDate, endDate);
+          }
+        })
+    );
+    // this.dialysisService.getAllSessions()
+    //     .pipe(take(1))
+    //     .subscribe(sessions => {
+    //       this.allDialysisSessions = sessions;
+    //     });
+  }
 
-    //fetch dialysis session for a date
+  ngOnDestroy() {
+    this.subscription.unsubscribe()
+  }
 
+  fetchSessions(startDate: Date, endDate: Date) {
+    //todo: change to one ay
 
-    //todo: may not need
-    this.dialysisService.getAllSessions()
-        .pipe(take(1))
-        .subscribe(sessions => {
-          this.allDialysisSessions = sessions;
-        });
+    // this.dialysisService.getSessionsByDateRange(startDate, endDate)
+    //     .pipe(
+    //         take(1),
+    //         catchError(error => {
+    //           console.error('Error fetching dialysis sessions:', error);
+    //           return of([]);
+    //         })
+    //     )
+    //     .subscribe(sessions => {
+    //       this.allDialysisSessions = sessions;
+    //     });
   }
 
   saveData() {
-    // The user’s patient_id can be set behind the scenes if needed.
-    // e.g. let currentPatientId = localStorage.getItem('user_id');
-    // this.dialysisData.patchValue({ patient_id: +currentPatientId });
-
     this.dialysisService.logDialysisSession(this.dialysisData.value)
         .pipe(
             take(1),
@@ -82,6 +100,7 @@ export class MeasurementsComponent implements OnInit {
         )
         .subscribe(response => {
           if (response) {
+            this.dialysisData = new DialysisTreatmentData();
             console.log('Logged dialysis data:', response);
           } else {
             console.log('Failed to log dialysis data.');

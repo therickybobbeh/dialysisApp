@@ -2,31 +2,19 @@
     <ng-template pTemplate="header">
         <h2 class="mb-0">{{ measurementsTitle }}</h2>
     </ng-template>
-
-    <!--
-      Add some Bootstrap classes on the form for spacing.
-      "g-3" => grid gap; "row gy-2" => vertical spacing between rows
-    -->
     <form [formGroup]="dialysisData" (ngSubmit)="saveData()" class="p-fluid">
         <div class="row g-3 mb-3">
-            <!-- Date Field -->
             <div class="col-md-6">
                 <label for="session_date_picker" class="form-label">Select Date</label>
-                <p-calendar
+                <p-datePicker
                         id="session_date_picker"
                         formControlName="session_date"
                         [showIcon]="true"
-                ></p-calendar>
+                ></p-datePicker>
             </div>
-
-            <!-- Session Type Dropdown -->
             <div class="col-md-6">
                 <label for="session_type" class="form-label">Session Type</label>
-                <!--
-                     pDropdown or normal select?
-                     If you want to use PrimeNG's pDropdown:
-                -->
-                <p-dropdown
+                <p-select
                         id="session_type"
                         [options]="sessionTypes"
                         optionLabel="label"
@@ -34,12 +22,10 @@
                         formControlName="session_type"
                         class="w-100"
                 >
-                </p-dropdown>
+                </p-select>
             </div>
         </div>
-
         <div class="row g-3 mb-3">
-            <!-- Session ID (Read-Only) -->
             <div class="col-md-6">
                 <label for="session_id" class="form-label">Session ID</label>
                 <input
@@ -48,11 +34,8 @@
                         pInputText
                         formControlName="session_id"
                         class="form-control"
-
                 />
             </div>
-
-            <!-- Weight -->
             <div class="col-md-6">
                 <label for="weight" class="form-label">Weight</label>
                 <input
@@ -64,9 +47,7 @@
                 />
             </div>
         </div>
-
         <div class="row g-3 mb-3">
-            <!-- Diastolic -->
             <div class="col-md-6">
                 <label for="diastolic" class="form-label">Diastolic</label>
                 <input
@@ -77,8 +58,6 @@
                         class="form-control"
                 />
             </div>
-
-            <!-- Systolic -->
             <div class="col-md-6">
                 <label for="systolic" class="form-label">Systolic</label>
                 <input
@@ -90,9 +69,7 @@
                 />
             </div>
         </div>
-
         <div class="row g-3 mb-3">
-            <!-- Effluent Volume -->
             <div class="col-md-6">
                 <label for="effluent_volume" class="form-label">Effluent Volume</label>
                 <input
@@ -103,19 +80,16 @@
                         class="form-control"
                 />
             </div>
-
-            <!-- Session Duration -->
             <div class="col-md-6">
                 <label for="session_duration" class="form-label">Session Duration</label>
-                <p-calendar
+                <p-datePicker
                         id="session_duration"
                         formControlName="session_duration"
                         timeOnly="true"
                         showIcon="true"
-                ></p-calendar>
+                ></p-datePicker>
             </div>
         </div>
-
         <div class="d-flex justify-content-center">
             <button
                     pButton
