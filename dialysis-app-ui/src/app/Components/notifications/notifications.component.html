@@ -1,1 +1,38 @@
-<p>notifications works!</p>
+<!-- Notification Legend -->
+<div class="mb-3">
+    <strong>Notification Types:</strong>
+    <div class="d-flex align-items-center gap-3 mt-2">
+        <i class="pi pi-info-circle text-primary"></i> Info
+        <i class="pi pi-check-circle text-success"></i> Success
+        <i class="pi pi-exclamation-triangle text-warning"></i> Warning
+        <i class="pi pi-times-circle text-danger"></i> Error
+    </div>
+</div>
+
+<!-- Filter Dropdown -->
+<p-dropdown
+        [options]="notificationTypes"
+        [(ngModel)]="selectedType"
+        placeholder="Filter by type"
+        optionLabel="label"
+        styleClass="mb-3 w-full"
+/>
+
+<!-- Notifications List -->
+<!-- Notifications List -->
+<div
+        *ngFor="let note of filteredNotifications()"
+        class="p-3 border rounded mb-2 d-flex align-items-start gap-3">
+    <i [ngClass]="{
+          'pi pi-info-circle text-primary': note.type === 'info',
+          'pi pi-check-circle text-success': note.type === 'success',
+          'pi pi-exclamation-triangle text-warning': note.type === 'warning',
+          'pi pi-times-circle text-danger': note.type === 'error'
+        }" style="font-size: 1.5rem;"></i>
+    <div>
+        <div>{{ note.message }}</div>
+        <small class="text-muted">
+            {{ note.timestamp | date: 'short' }}
+        </small>
+    </div>
+</div>

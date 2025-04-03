@@ -107,13 +107,12 @@
             <!-- Session Duration -->
             <div class="col-md-6">
                 <label for="session_duration" class="form-label">Session Duration</label>
-                <input
+                <p-calendar
                         id="session_duration"
-                        type="text"
-                        pInputText
                         formControlName="session_duration"
-                        class="form-control"
-                />
+                        timeOnly="true"
+                        showIcon="true"
+                ></p-calendar>
             </div>
         </div>
 
