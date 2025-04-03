@@ -8,6 +8,10 @@ import {GraphingComponent} from '../../Components/graphing/graphing.component';
 import {NotificationsComponent} from '../../Components/notifications/notifications.component';
 import {NavBarComponent} from '../../Components/nav-bar/nav-bar.component';
 import {Image} from 'primeng/image';
+import {BloodPressureComponent} from "../../Components/graphing/blood-pressure/blood-pressure.component";
+import {
+  DialysisMeasurementsGraphComponent
+} from "../../Components/graphing/dialysis-measurements-graph/dialysis-measurements-graph.component";
 
 @Component({
   selector: 'app-patient-portal',
@@ -22,7 +26,9 @@ import {Image} from 'primeng/image';
     GraphingComponent,
     NotificationsComponent,
     NavBarComponent,
-    Image
+    Image,
+    BloodPressureComponent,
+    DialysisMeasurementsGraphComponent
   ],
   templateUrl: './patient-portal.component.html',
   styleUrl: './patient-portal.component.scss'
