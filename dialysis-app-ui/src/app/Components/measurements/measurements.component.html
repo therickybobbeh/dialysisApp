@@ -1,52 +1,103 @@
-<div class="card">
-    <h2>{{measurementsTitle}}</h2>
-    <form *ngIf="selection === 'pre'" [formGroup]="preDialysisData">
-        <div class="p-fluid">
-            <div class="p-field">
-                <label for="preDialysisWeight">Pre-Dialysis Weight</label>
-                <input id="preDialysisWeight" type="number" pInputText formControlName="preDialysisWeight" />
+<p-card class="mb-4">
+    <ng-template pTemplate="header">
+        <h2 class="mb-0">{{ measurementsTitle }}</h2>
+    </ng-template>
+    <form [formGroup]="dialysisData" (ngSubmit)="saveData()" class="p-fluid">
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label for="session_date_picker" class="form-label">Select Date</label>
+                <p-datePicker
+                        id="session_date_picker"
+                        formControlName="session_date"
+                        [showIcon]="true"
+                ></p-datePicker>
             </div>
-            <div class="p-field">
-                <label for="effluentVolume">Effluent Volume</label>
-                <input id="effluentVolume" type="number" pInputText formControlName="effluentVolume" />
-            </div>
-            <div class="p-field">
-                <label for="sessionDuration">Session Duration</label>
-                <input id="sessionDuration" type="number" pInputText formControlName="sessionDuration" />
-            </div>
-            <div class="p-field">
-                <label for="dailyProteinIntake">Daily Protein Intake</label>
-                <input id="dailyProteinIntake" type="number" pInputText formControlName="dailyProteinIntake" />
-            </div>
-            <div class="p-field">
-                <label for="bloodPressureBefore">Blood Pressure Before</label>
-                <input id="bloodPressureBefore" type="number" pInputText formControlName="bloodPressureBefore" />
-            </div>
-        </div>
-    </form>
-
-    <form *ngIf="selection === 'post'" [formGroup]="postDialysisData">
-        <div class="p-fluid">
-            <div class="p-field">
-                <label for="preDialysisWeight">Pre-Dialysis Weight</label>
-                <input id="preDialysisWeight" type="number" pInputText formControlName="preDialysisWeight" />
-            </div>
-            <div class="p-field">
-                <label for="postDialysisWeight">Post-Dialysis Weight</label>
-                <input id="postDialysisWeight" type="number" pInputText formControlName="postDialysisWeight" />
-            </div>
-            <div class="p-field">
-                <label for="effluentVolume">Effluent Volume</label>
-                <input id="effluentVolume" type="number" pInputText formControlName="effluentVolume" />
-            </div>
-            <div class="p-field">
-                <label for="sessionDuration">Session Duration</label>
-                <input id="sessionDuration" type="number" pInputText formControlName="sessionDuration" />
-            </div>
-            <div class="p-field">
-                <label for="bloodPressureAfter">Blood Pressure After</label>
-                <input id="bloodPressureAfter" type="number" pInputText formControlName="bloodPressureAfter" />
+            <div class="col-md-6">
+                <label for="session_type" class="form-label">Session Type</label>
+                <p-select
+                        id="session_type"
+                        [options]="sessionTypes"
+                        optionLabel="label"
+                        optionValue="value"
+                        formControlName="session_type"
+                        class="w-100"
+                >
+                </p-select>
             </div>
         </div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label for="session_id" class="form-label">Session ID</label>
+                <input
+                        id="session_id"
+                        type="number"
+                        pInputText
+                        formControlName="session_id"
+                        class="form-control"
+                />
+            </div>
+            <div class="col-md-6">
+                <label for="weight" class="form-label">Weight</label>
+                <input
+                        id="weight"
+                        type="number"
+                        pInputText
+                        formControlName="weight"
+                        class="form-control"
+                />
+            </div>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label for="diastolic" class="form-label">Diastolic</label>
+                <input
+                        id="diastolic"
+                        type="number"
+                        pInputText
+                        formControlName="diastolic"
+                        class="form-control"
+                />
+            </div>
+            <div class="col-md-6">
+                <label for="systolic" class="form-label">Systolic</label>
+                <input
+                        id="systolic"
+                        type="number"
+                        pInputText
+                        formControlName="systolic"
+                        class="form-control"
+                />
+            </div>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label for="effluent_volume" class="form-label">Effluent Volume</label>
+                <input
+                        id="effluent_volume"
+                        type="number"
+                        pInputText
+                        formControlName="effluent_volume"
+                        class="form-control"
+                />
+            </div>
+            <div class="col-md-6">
+                <label for="session_duration" class="form-label">Session Duration</label>
+                <p-datePicker
+                        id="session_duration"
+                        formControlName="session_duration"
+                        timeOnly="true"
+                        showIcon="true"
+                ></p-datePicker>
+            </div>
+        </div>
+        <div class="d-flex justify-content-center">
+            <button
+                    pButton
+                    type="submit"
+                    pButtonLabel="Submit"
+                    class="btn btn-primary"
+                    [disabled]="dialysisData.invalid"
+            >Submit</button>
+        </div>
     </form>
-</div>
+</p-card>

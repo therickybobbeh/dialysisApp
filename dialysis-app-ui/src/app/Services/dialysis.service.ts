@@ -1,27 +1,31 @@
-import {Injectable} from '@angular/core';
-import {HttpClient, HttpHeaders, HttpParams} from '@angular/common/http';
-import {Observable, throwError} from 'rxjs';
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import { DialysisSessionCreate, DialysisSessionResponse } from '../Models/dialysis';
-import {ProviderDashboardRow} from "../Models/provider";
-
+import { ProviderDashboardRow } from '../Models/provider';
 
 @Injectable({
     providedIn: 'root'
 })
 export class DialysisService {
     private API_BASE_URL = 'http://localhost:8004'; // Update with your actual API base URL
+    private baseUrl = `${this.API_BASE_URL}/dialysis`;
+    private token = localStorage.getItem('token');
 
-    private baseUrl = 'http://localhost:8004/dialysis'; // Adjust as needed
-
-    constructor(private http: HttpClient) {
-    }
+    constructor(private http: HttpClient) {}
 
     /**
      * POST /dialysis/sessions
      * Log a new dialysis session.
      */
     logDialysisSession(sessionData: DialysisSessionCreate): Observable<DialysisSessionResponse> {
-        return this.http.post<DialysisSessionResponse>(`${this.baseUrl}/sessions`, sessionData);
+        const token = localStorage.getItem('token'); // or this.token
+        const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+        return this.http.post<DialysisSessionResponse>(
+            `${this.baseUrl}/sessions`,
+            sessionData,
+            { headers }
+        );
     }
 
     /**
@@ -30,6 +34,8 @@ export class DialysisService {
      * Accepts optional start_date, end_date as query params.
      */
     getDialysisSessions(start_date?: string, end_date?: string): Observable<DialysisSessionResponse[]> {
+        const token = localStorage.getItem('token'); // or this.token
+        const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
         let params = new HttpParams();
         if (start_date) {
             params = params.set('start_date', start_date);
@@ -37,9 +43,25 @@ export class DialysisService {
         if (end_date) {
             params = params.set('end_date', end_date);
         }
-
-        return this.http.get<DialysisSessionResponse[]>(`${this.baseUrl}/sessions`, {params});
+        return this.http.get<DialysisSessionResponse[]>(`${this.baseUrl}/sessions`, { headers, params });
     }
+    // /**
+    //  * GET /dialysis/sessions
+    //  * Retrieve dialysis sessions for the current patient (requires user.role = "patient").
+    //  * Accepts optional start_date, end_date as query params.
+    //  */
+    // getSessionsByDateRange(startDate: Date, endDate: Date): Observable<DialysisSessionResponse[]> {
+    //     const token = localStorage.getItem('token'); // or this.token
+    //     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+    //     let params = new HttpParams();
+    //     if (startDate) {
+    //         params = params.set('start_date', startDate.toISOString());
+    //     }
+    //     if (endDate) {
+    //         params = params.set('end_date', endDate.toISOString());
+    //     }
+    //     return this.http.get<DialysisSessionResponse[]>(`${this.baseUrl}/sessions`, { headers, params });
+    // }
 
     /**
      * GET /dialysis/provider-dashboard
@@ -55,7 +77,7 @@ export class DialysisService {
             params = params.set('end_date', end_date);
         }
 
-        return this.http.get<ProviderDashboardRow[]>(`${this.baseUrl}/provider-dashboard`, {params});
+        return this.http.get<ProviderDashboardRow[]>(`${this.baseUrl}/provider-dashboard`, { params });
     }
 
     /**
@@ -68,15 +90,16 @@ export class DialysisService {
 
     /**
      * GET /dialysis/all-sessions
-     * Provider can view all sessions from all patients
+     * Provider can view all sessions from all patients.
      */
     getAllSessions(): Observable<DialysisSessionResponse[]> {
-        return this.http.get<DialysisSessionResponse[]>(`${this.baseUrl}/all-sessions`);
+        const headers = new HttpHeaders().set('Authorization', `Bearer ${this.token}`);
+        return this.http.get<DialysisSessionResponse[]>(`${this.baseUrl}/all-sessions`, { headers });
     }
 
     /**
      * DELETE /dialysis/sessions/{session_id}
-     * Patient can delete their own session
+     * Patient can delete their own session.
      */
     deleteDialysisSession(sessionId: number): Observable<any> {
         return this.http.delete(`${this.baseUrl}/sessions/${sessionId}`);

@@ -96,6 +96,10 @@ export class AuthService {
         return localStorage.getItem('user_role') || 'guest';
     }
 
+    getUserID(): string {
+        return localStorage.getItem('user_id') || '';
+    }
+
     /** Decode token to check expiry, user_id, etc. */
     decodeToken(token: string): any {
         try {
