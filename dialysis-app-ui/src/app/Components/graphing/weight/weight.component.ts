@@ -1,18 +1,22 @@
-import { Component, OnInit } from '@angular/core';
-import { ChartModule } from "primeng/chart";
-import { FormsModule } from "@angular/forms";
-import { DialysisService } from '../../../Services/dialysis.service';
-import { DialysisSessionResponse } from '../../../Models/dialysis';
-import {ChartData, ChartOptions} from "chart.js";
+import {Component, OnInit} from '@angular/core';
 import {DatePicker} from "primeng/datepicker";
+import {UIChart} from "primeng/chart";
+import {ChartData, ChartOptions} from "chart.js";
+import {DialysisService} from "../../../Services/dialysis.service";
+import {DialysisSessionResponse} from "../../../Models/dialysis";
+import {FormsModule} from "@angular/forms";
 
 @Component({
-  selector: 'app-dialysis-measurements-graph',
-  imports: [ChartModule, FormsModule, DatePicker],
-  templateUrl: './dialysis-measurements-graph.component.html',
-  styleUrl: './dialysis-measurements-graph.component.scss'
+  selector: 'app-weight',
+  imports: [
+    DatePicker,
+    UIChart,
+    FormsModule
+  ],
+  templateUrl: './weight.component.html',
+  styleUrl: './weight.component.scss'
 })
-export class DialysisMeasurementsGraphComponent implements OnInit {
+export class WeightComponent implements OnInit{
   dateRange: Date[] = [];
   data: ChartData<'line'> | undefined;
   options: ChartOptions<'line'> | undefined;
@@ -41,21 +45,20 @@ export class DialysisMeasurementsGraphComponent implements OnInit {
 
   updateChartData(sessions: DialysisSessionResponse[]) {
     const labels = sessions.map((_, index) => (index + 1).toString());
-    const effluent_volume = sessions.map(session => session.effluent_volume);
-    //TODO: change to weight
     const weight = sessions.map(session => session.weight);
 
     this.data = {
       labels: labels,
       datasets: [
         {
-          label: 'Effluent Volume',
-          data: effluent_volume,
+          label: 'Weight',
+          data: weight,
           fill: false,
-          borderColor: '#f6c744',
-          backgroundColor: '#f6c744',
+          borderColor: '#e97a42',
+          backgroundColor: '#e97a42',
+          borderDash: [5, 5],
           tension: 0.3,
-          pointStyle: 'circle',
+          pointStyle: 'rect',
           pointRadius: 6,
           pointBorderWidth: 2
         }
@@ -72,7 +75,7 @@ export class DialysisMeasurementsGraphComponent implements OnInit {
         },
         title: {
           display: true,
-          text: 'Dialysis Measurements Over Selected Sessions',
+          text: 'Weight Over Selected Sessions',
         }
       },
       scales: {
@@ -81,8 +84,8 @@ export class DialysisMeasurementsGraphComponent implements OnInit {
             display: true,
             text: 'Measurement Level'
           },
-          min: 1,
-          max: 5.2
+          min: 20,
+          max: 200
         },
         x: {
           title: {

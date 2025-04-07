@@ -19,7 +19,7 @@ export class BloodPressureComponent implements OnInit {
 
   constructor(private dialysisService: DialysisService) {}
 
-  ngOnInit() {
+   ngOnInit() {
     // Set default date range to yesterday and 7 days before
     const today = new Date();
     const yesterday = new Date(today);

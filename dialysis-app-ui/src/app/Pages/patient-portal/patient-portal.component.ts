@@ -12,24 +12,29 @@ import {BloodPressureComponent} from "../../Components/graphing/blood-pressure/b
 import {
   DialysisMeasurementsGraphComponent
 } from "../../Components/graphing/dialysis-measurements-graph/dialysis-measurements-graph.component";
+import {TabPanel, TabView} from "primeng/tabview";
+import {WeightComponent} from "../../Components/graphing/weight/weight.component";
 
 @Component({
   selector: 'app-patient-portal',
-  imports: [
-    Toolbar,
-    ButtonDirective,
-    Button,
-    ButtonModule,
-    MeasurementsComponent,
-    FooterComponent,
-    NutritionComponent,
-    GraphingComponent,
-    NotificationsComponent,
-    NavBarComponent,
-    Image,
-    BloodPressureComponent,
-    DialysisMeasurementsGraphComponent
-  ],
+    imports: [
+        Toolbar,
+        ButtonDirective,
+        Button,
+        ButtonModule,
+        MeasurementsComponent,
+        FooterComponent,
+        NutritionComponent,
+        GraphingComponent,
+        NotificationsComponent,
+        NavBarComponent,
+        Image,
+        BloodPressureComponent,
+        DialysisMeasurementsGraphComponent,
+        TabPanel,
+        TabView,
+        WeightComponent
+    ],
   templateUrl: './patient-portal.component.html',
   styleUrl: './patient-portal.component.scss'
 })

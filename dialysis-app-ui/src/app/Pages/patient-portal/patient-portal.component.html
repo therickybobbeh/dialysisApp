@@ -1,6 +1,4 @@
 <app-nav-bar></app-nav-bar>
-
-<!-- Main Content -->
 <div class="d-flex flex-column min-vh-100">
     <div class="container flex-grow-1">
         <div class="row mb-2 mt-2">
@@ -21,21 +19,25 @@
         </div>
         <div class="container-fluid my-4">
             <div class="row mb-2">
-                <div class="col-md-6">
+                <div class="col-12">
                     <div class="card h-100">
                         <div class="card-body">
-                            <app-blood-pressure></app-blood-pressure>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <app-dialysis-measurements-graph></app-dialysis-measurements-graph>
+                            <p-tabView>
+                                <p-tabPanel header="Blood Preasure">
+                                    <app-blood-pressure></app-blood-pressure>
+                                </p-tabPanel>
+                                <p-tabPanel header="Dialysis Data">
+                                    <app-dialysis-measurements-graph></app-dialysis-measurements-graph>
+                                </p-tabPanel>
+                                <p-tabPanel header="Weight">
+                                    <app-weight></app-weight>
+                                </p-tabPanel>
+                            </p-tabView>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
     </div>
 </div>

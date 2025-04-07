@@ -6,18 +6,28 @@ import {InputText} from "primeng/inputtext";
 import { PatientTableCard} from "../../Models/tables";
 import {NavBarComponent} from "../../Components/nav-bar/nav-bar.component";
 import {NgStyle} from "@angular/common";
+import {MeasurementsComponent} from "../../Components/measurements/measurements.component";
+import {
+  DialysisMeasurementsGraphComponent
+} from "../../Components/graphing/dialysis-measurements-graph/dialysis-measurements-graph.component";
+import {BloodPressureComponent} from "../../Components/graphing/blood-pressure/blood-pressure.component";
+import {WeightComponent} from "../../Components/graphing/weight/weight.component";
 
 @Component({
   selector: 'app-provider-portal',
-  imports: [
-    TabView,
-    TabPanel,
-    NotificationsComponent,
-    TableModule,
-    InputText,
-    NavBarComponent,
-    NgStyle
-  ],
+    imports: [
+        TabView,
+        TabPanel,
+        NotificationsComponent,
+        TableModule,
+        InputText,
+        NavBarComponent,
+        NgStyle,
+        MeasurementsComponent,
+        DialysisMeasurementsGraphComponent,
+        BloodPressureComponent,
+        WeightComponent
+    ],
   templateUrl: './provider-portal.component.html',
   styleUrl: './provider-portal.component.scss'
 })
