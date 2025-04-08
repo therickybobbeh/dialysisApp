@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, JSON, ARRAY
 from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 
@@ -10,8 +10,10 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
     role = Column(String, nullable=False, default="patient")
+    notifications = Column(JSON, default={})
+    patients = Column(ARRAY(Integer), default=[])
 
-    #  Relationships
+    # Relationships
     dialysis_sessions = relationship("DialysisSession", back_populates="patient", cascade="all, delete-orphan")
     food_intakes = relationship("FoodIntake", back_populates="patient", cascade="all, delete-orphan", overlaps="food_intakes")
 

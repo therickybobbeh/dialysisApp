@@ -12,7 +12,8 @@ class DialysisSessionCreate(BaseModel):
     systolic: int = Field(..., description="Systolic blood pressure (mmHg)")
     effluent_volume: float = Field(..., description="Volume of effluent removed in liters")
     session_date: datetime = Field(..., description="Date and time of the dialysis session")
-    session_duration: Optional[str] = Field(None, description="Duration of the session") #  Added session_date
+    session_duration: Optional[str] = Field(None, description="Duration of the session")
+    protein: float = Field(..., description="Protein level in the effluent")
 
 class DialysisSessionResponse(DialysisSessionCreate):
     id: int

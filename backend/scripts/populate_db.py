@@ -65,6 +65,7 @@ for patient in patients:
         effluent_volume = round(random.uniform(1.5, 3.0), 2)
         session_date = datetime.now(timezone.utc) - timedelta(days=random.randint(1, 30))
         session_duration = f"{random.randint(1, 4)} hours"
+        protein = round(random.uniform(0.1, 1.0), 2)
 
         session = DialysisSession(
             patient_id=patient.id,
@@ -75,9 +76,11 @@ for patient in patients:
             systolic=systolic,
             effluent_volume=effluent_volume,
             session_date=session_date,
-            session_duration=session_duration
+            session_duration=session_duration,
+            protein=protein
         )
         db.add(session)
+db.commit()
 
 try:
     db.commit()

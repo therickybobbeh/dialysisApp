@@ -15,7 +15,7 @@ class DialysisSession(Base):
     effluent_volume = Column(Float, nullable=False)
     session_date = Column(DateTime, nullable=False)
     session_duration = Column(String, nullable=True)
-
+    protein = Column(Float, nullable=False)
     # Use lazy string reference instead of direct import
     patient = relationship("User", back_populates="dialysis_sessions")
 

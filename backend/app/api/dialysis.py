@@ -87,6 +87,7 @@ async def log_dialysis_session(
             effluent_volume=session_data.effluent_volume,
             session_date=session_data.session_date,
             session_duration=session_data.session_duration,
+            protein=session_data.protein
         )
 
         db.add(new_session)
@@ -267,6 +268,7 @@ async def update_dialysis_session(
         session.effluent_volume = session_data.effluent_volume
         session.session_date = session_data.session_date
         session.session_duration = session_data.session_duration
+        session.protein = session_data.protein
 
         db.commit()
         db.refresh(session)
