@@ -47,9 +47,18 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     if not verify_password(form_data.password, user.password):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
 
-    #  Generate Tokens
-    access_token = create_access_token({"sub": user.email, "user_id": user.id, "role": user.role}, timedelta(minutes=30))
-    refresh_token = create_refresh_token({"sub": user.email, "user_id": user.id})
+    #  Generate Tokens todo MAYBE not needed to return here
+    token_data = {
+        "sub": user.email,
+        "user_id": user.id,
+        "role": user.role
+    }
+
+    if user.role == "provider":
+        token_data["patients"] = user.patients
+
+    access_token = create_access_token(token_data, timedelta(minutes=30))
+    refresh_token = create_refresh_token(token_data)
 
     return {
         "access_token": access_token,

@@ -1,8 +1,8 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { DialysisSessionCreate, DialysisSessionResponse } from '../Models/dialysis';
-import { ProviderDashboardRow } from '../Models/provider';
+import {Injectable} from '@angular/core';
+import {HttpClient, HttpHeaders, HttpParams} from '@angular/common/http';
+import {Observable} from 'rxjs';
+import {DialysisSessionCreate, DialysisSessionResponse} from '../Models/dialysis';
+import {ProviderDashboardRow} from '../Models/provider';
 
 @Injectable({
     providedIn: 'root'
@@ -12,7 +12,8 @@ export class DialysisService {
     private baseUrl = `${this.API_BASE_URL}/dialysis`;
     private token = localStorage.getItem('token');
 
-    constructor(private http: HttpClient) {}
+    constructor(private http: HttpClient) {
+    }
 
     /**
      * POST /dialysis/sessions
@@ -24,7 +25,7 @@ export class DialysisService {
         return this.http.post<DialysisSessionResponse>(
             `${this.baseUrl}/sessions`,
             sessionData,
-            { headers }
+            {headers}
         );
     }
 
@@ -43,8 +44,9 @@ export class DialysisService {
         if (end_date) {
             params = params.set('end_date', end_date);
         }
-        return this.http.get<DialysisSessionResponse[]>(`${this.baseUrl}/sessions`, { headers, params });
+        return this.http.get<DialysisSessionResponse[]>(`${this.baseUrl}/sessions`, {headers, params});
     }
+
     // /**
     //  * GET /dialysis/sessions
     //  * Retrieve dialysis sessions for the current patient (requires user.role = "patient").
@@ -77,7 +79,7 @@ export class DialysisService {
             params = params.set('end_date', end_date);
         }
 
-        return this.http.get<ProviderDashboardRow[]>(`${this.baseUrl}/provider-dashboard`, { params });
+        return this.http.get<ProviderDashboardRow[]>(`${this.baseUrl}/provider-dashboard`, {params});
     }
 
     /**
@@ -94,7 +96,7 @@ export class DialysisService {
      */
     getAllSessions(): Observable<DialysisSessionResponse[]> {
         const headers = new HttpHeaders().set('Authorization', `Bearer ${this.token}`);
-        return this.http.get<DialysisSessionResponse[]>(`${this.baseUrl}/all-sessions`, { headers });
+        return this.http.get<DialysisSessionResponse[]>(`${this.baseUrl}/all-sessions`, {headers});
     }
 
     /**

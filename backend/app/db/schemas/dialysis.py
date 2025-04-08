@@ -5,7 +5,7 @@ from typing import Optional
 
 class DialysisSessionCreate(BaseModel):
     session_type: str = Field(..., description="Type of the session: 'pre' or 'post'")
-    session_id: int = Field(..., description="ID of the session")
+    session_id: Optional[int] = Field(None, description="ID of the session")
     patient_id: int = Field(..., description="ID of the patient")
     weight: float = Field(..., description="Weight in kg")
     diastolic: int = Field(..., description="Diastolic blood pressure (mmHg)")
