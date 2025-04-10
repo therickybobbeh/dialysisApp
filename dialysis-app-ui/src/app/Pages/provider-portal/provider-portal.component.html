@@ -8,57 +8,7 @@
                 <div class="col-md-6 d-flex flex-column p-3 h-100">
                     <div class="card flex-grow-1 overflow-auto">
                         <div class="card-body p-2 flex-grow-1 overflow-auto">
-                            <p-table
-                                #dt
-                                [value]="patients"
-                                selectionMode="single"
-                                [(selection)]="selectedPatients"
-                                [paginator]="true"
-                                [rows]="8"
-                                [sortField]="'name'"
-                                [sortOrder]="1"
-                                class="flex-grow-1"
-                            >
-                                <ng-template pTemplate="header">
-                                    <tr>
-                                        <th colspan="10">
-                                            <p-columnFilter
-                                                    type="text"
-                                                    field="name"
-                                                    placeholder="Search by name"
-                                                    ariaLabel="Filter Name"
-                                            >
-                                            </p-columnFilter>
-                                        </th>
-                                    </tr>
-                                    <tr>
-                                        <th pSortableColumn="name">Name
-                                            <p-sortIcon field="name"></p-sortIcon>
-                                        </th>
-                                        <th pSortableColumn="age">Age
-                                            <p-sortIcon field="age"></p-sortIcon>
-                                        </th>
-                                        <th pSortableColumn="alerts">Alerts
-                                            <p-sortIcon field="alerts"></p-sortIcon>
-                                        </th>
-                                        <th pSortableColumn="lastStatus">Last Status
-                                            <p-sortIcon field="lastStatus"></p-sortIcon>
-                                        </th>
-                                        <th pSortableColumn="lastSession">Last Session
-                                            <p-sortIcon field="lastSession"></p-sortIcon>
-                                        </th>
-                                    </tr>
-                                </ng-template>
-                                <ng-template pTemplate="body" let-patient>
-                                    <tr [pSelectableRow]="patient">
-                                        <td>{{ patient.name }}</td>
-                                        <td>{{ patient.age }}</td>
-                                        <td>{{ patient.alerts }}</td>
-                                        <td>{{ patient.lastStatus }}</td>
-                                        <td>{{ patient.lastSession }}</td>
-                                    </tr>
-                                </ng-template>
-                            </p-table>
+                            <app-patient-list></app-patient-list>
                         </div>
                     </div>
                 </div>

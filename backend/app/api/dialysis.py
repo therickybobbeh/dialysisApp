@@ -63,22 +63,33 @@ async def log_dialysis_session(
         logger.error(f"Patient with ID {session_data.patient_id} does not exist.")
         raise HTTPException(status_code=400, detail="Invalid patient ID: Patient does not exist")
 
-    # Check for duplicate session
+    # Check for duplicate session type on the same day
     existing_session = (
         db.query(DialysisSession)
         .filter(
             DialysisSession.patient_id == session_data.patient_id,
-            DialysisSession.session_date >= session_data.session_date.date()
+            DialysisSession.session_date >= session_data.session_date.date(),
+            DialysisSession.session_type == session_data.session_type
         )
         .first()
     )
     if existing_session:
-        logger.warning(f"Duplicate session detected for patient {session_data.patient_id} on {session_data.session_date}")
-        raise HTTPException(status_code=400, detail="Dialysis session already logged today")
+        logger.warning(f"Duplicate {session_data.session_type} session detected for patient {session_data.patient_id} on {session_data.session_date}")
+        raise HTTPException(status_code=400, detail=f"{session_data.session_type.capitalize()} session already logged today")
+
+    # Auto-generate session_id if not provided
+    if session_data.session_id is None:
+        last_session = (
+            db.query(DialysisSession)
+            .filter(DialysisSession.patient_id == session_data.patient_id)
+            .order_by(DialysisSession.session_id.desc())
+            .first()
+        )
+        session_data.session_id = last_session.session_id + 1 if last_session else 1
 
     try:
         new_session = DialysisSession(
-            patient_id=session_data.patient_id,  # Use the provided patient_id
+            patient_id=session_data.patient_id,
             session_type=session_data.session_type,
             session_id=session_data.session_id,
             weight=session_data.weight,
@@ -87,6 +98,7 @@ async def log_dialysis_session(
             effluent_volume=session_data.effluent_volume,
             session_date=session_data.session_date,
             session_duration=session_data.session_duration,
+            protein=session_data.protein
         )
 
         db.add(new_session)
@@ -108,7 +120,6 @@ async def log_dialysis_session(
         db.rollback()
         logger.error(f"Error logging dialysis session: {e}")
         raise HTTPException(status_code=500, detail="Failed to log dialysis session")
-
 #  Route: `GET /dialysis/sessions`
 @router.get("/sessions", response_model=List[DialysisSessionResponse])
 async def get_dialysis_sessions(
@@ -267,6 +278,7 @@ async def update_dialysis_session(
         session.effluent_volume = session_data.effluent_volume
         session.session_date = session_data.session_date
         session.session_duration = session_data.session_duration
+        session.protein = session_data.protein
 
         db.commit()
         db.refresh(session)

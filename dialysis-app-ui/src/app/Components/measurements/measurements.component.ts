@@ -100,6 +100,7 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
         )
         .subscribe(response => {
           if (response) {
+            this.dialysisData.reset();
             this.dialysisData = new DialysisTreatmentData();
             console.log('Logged dialysis data:', response);
           } else {

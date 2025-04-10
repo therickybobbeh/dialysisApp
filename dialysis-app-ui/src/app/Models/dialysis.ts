@@ -8,6 +8,7 @@ export interface DialysisSessionCreate {
     effluent_volume: number;
     session_date: string;
     session_duration?: string;
+    protein: number;
 }
 
 //TODO: fix
@@ -21,4 +22,5 @@ export interface DialysisSessionResponse {
     effluent_volume: number;
     session_date: string;
     session_duration?: string;
+    protein: number;
 }

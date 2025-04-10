@@ -4,7 +4,6 @@ import {Button, ButtonDirective, ButtonModule} from 'primeng/button';
 import {MeasurementsComponent} from '../../Components/measurements/measurements.component';
 import {FooterComponent} from '../../Components/footer/footer.component';
 import {NutritionComponent} from '../../Components/nutrition/nutrition.component';
-import {GraphingComponent} from '../../Components/graphing/graphing.component';
 import {NotificationsComponent} from '../../Components/notifications/notifications.component';
 import {NavBarComponent} from '../../Components/nav-bar/nav-bar.component';
 import {Image} from 'primeng/image';
@@ -25,7 +24,6 @@ import {WeightComponent} from "../../Components/graphing/weight/weight.component
         MeasurementsComponent,
         FooterComponent,
         NutritionComponent,
-        GraphingComponent,
         NotificationsComponent,
         NavBarComponent,
         Image,
