@@ -51,16 +51,16 @@ export class PatientListComponent implements OnInit {
     });
   }
 
-  savePatientData(updatedData: any): void {
-    if (this.selectedPatient) {
-      this.providerService.logDialysisSessionForPatient(this.selectedPatient.id, updatedData).subscribe({
-        next: (response) => {
-          console.log('Patient data saved successfully:', response);
-        },
-        error: (err) => {
-          console.error('Error saving patient data:', err);
-        }
-      });
-    }
-  }
+  // savePatientData(updatedData: any): void {
+  //   if (this.selectedPatient) {
+  //     this.providerService.logDialysisSessionForPatient(this.selectedPatient.id, updatedData).subscribe({
+  //       next: (response) => {
+  //         console.log('Patient data saved successfully:', response);
+  //       },
+  //       error: (err) => {
+  //         console.error('Error saving patient data:', err);
+  //       }
+  //     });
+  //   }
+  // }
 }

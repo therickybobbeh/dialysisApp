@@ -27,7 +27,6 @@ export class NavBarComponent implements OnInit, OnDestroy {
 
     ngOnInit() {
         this.routerSubscription.add(this.router.events.subscribe(event => {
-            console.log("event" + event);
             if (event instanceof NavigationEnd) {
                 if (event.urlAfterRedirects.includes('provider')) {
                     this.title = 'Provider Portal';

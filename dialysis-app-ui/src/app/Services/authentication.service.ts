@@ -86,18 +86,15 @@ export class AuthService {
         this.router.navigate(['/login']);
     }
 
-    /** Return whether user is authenticated */
-    isAuthenticated(): boolean {
-        return !!localStorage.getItem('token');
-    }
 
     /** Get user role */
     getUserRole(): string {
         return localStorage.getItem('user_role') || 'guest';
     }
 
-    getUserID(): string {
-        return localStorage.getItem('user_id') || '';
+    getUserID(): number| null {
+        const userId  = localStorage.getItem('user_id');
+        return userId ? Number(userId) : null;
     }
 
     /** Decode token to check expiry, user_id, etc. */

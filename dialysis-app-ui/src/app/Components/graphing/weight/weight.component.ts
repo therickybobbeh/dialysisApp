@@ -1,10 +1,11 @@
-import {Component, OnInit} from '@angular/core';
-import {DatePicker} from "primeng/datepicker";
-import {UIChart} from "primeng/chart";
-import {ChartData, ChartOptions} from "chart.js";
-import {DialysisService} from "../../../Services/dialysis.service";
-import {DialysisSessionResponse} from "../../../Models/dialysis";
-import {FormsModule} from "@angular/forms";
+import { Component, OnInit } from '@angular/core';
+import { DatePicker } from "primeng/datepicker";
+import { UIChart } from "primeng/chart";
+import { ChartData, ChartOptions } from "chart.js";
+import { DialysisService } from "../../../Services/dialysis.service";
+import { DialysisSessionResponse } from "../../../Models/dialysis";
+import { FormsModule } from "@angular/forms";
+import {GraphingService} from "../../../Services/graphing.service";
 
 @Component({
   selector: 'app-weight',
@@ -14,32 +15,35 @@ import {FormsModule} from "@angular/forms";
     FormsModule
   ],
   templateUrl: './weight.component.html',
-  styleUrl: './weight.component.scss'
+  styleUrls: ['./weight.component.scss']
 })
-export class WeightComponent implements OnInit{
+export class WeightComponent implements OnInit {
   dateRange: Date[] = [];
-  data: ChartData<'line'> | undefined;
-  options: ChartOptions<'line'> | undefined;
+  chartData: ChartData<'line'> | undefined;
+  chartOptions: ChartOptions<'line'> | undefined;
 
-  constructor(private dialysisService: DialysisService) {}
+  constructor(private graphingService: GraphingService) {}
 
-  ngOnInit() {
+  async ngOnInit() {
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(today.getDate() - 7);
     this.dateRange = [sevenDaysAgo, yesterday];
-    this.fetchDataAndUpdateChart();
+
+    await this.fetchDataAndUpdateChart();
   }
 
-  fetchDataAndUpdateChart() {
-    if (this.dateRange.length === 2) {
-      const [startDate, endDate] = this.dateRange;
-      this.dialysisService.getDialysisSessions(startDate.toISOString(), endDate.toISOString())
-          .subscribe((sessions: DialysisSessionResponse[]) => {
-            this.updateChartData(sessions);
-          });
+  async fetchDataAndUpdateChart() {
+    if (this.dateRange.length !== 2) {
+      console.warn('Invalid date range selected.');
+      return;
+    }
+
+    const sessions = await this.graphingService.fetchSessions(this.dateRange as [Date, Date]);
+    if (sessions) {
+      this.updateChartData(sessions);
     }
   }
 
@@ -47,8 +51,11 @@ export class WeightComponent implements OnInit{
     const labels = sessions.map((_, index) => (index + 1).toString());
     const weight = sessions.map(session => session.weight);
 
-    this.data = {
-      labels: labels,
+    const dynamicMin = Math.min(...weight) - 10;
+    const dynamicMax = Math.max(...weight) + 10;
+
+    this.chartData = {
+      labels,
       datasets: [
         {
           label: 'Weight',
@@ -65,7 +72,7 @@ export class WeightComponent implements OnInit{
       ]
     };
 
-    this.options = {
+    this.chartOptions = {
       responsive: true,
       plugins: {
         legend: {
@@ -82,10 +89,10 @@ export class WeightComponent implements OnInit{
         y: {
           title: {
             display: true,
-            text: 'Measurement Level'
+            text: 'Weight (kg)'
           },
-          min: 20,
-          max: 200
+          min: dynamicMin,
+          max: dynamicMax
         },
         x: {
           title: {
