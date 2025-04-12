@@ -63,6 +63,15 @@ export class GraphingService {
           selectedPatient.id
         )
       );
+      // Sort sessions by date and then by type ("pre" before "post")
+      sessions.sort((a, b) => {
+        const dateComparison = new Date(a.session_date).getTime() - new Date(b.session_date).getTime();
+        if (dateComparison !== 0) {
+          return dateComparison;
+        }
+        return a.session_type === 'pre' ? -1 : 1;
+      });
+
       return sessions;
     } catch (error) {
       console.error('Error fetching dialysis sessions:', error);

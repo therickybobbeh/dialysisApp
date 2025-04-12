@@ -45,6 +45,8 @@ export class DialysisMeasurementsGraphComponent implements OnInit {
   updateChartData(sessions: DialysisSessionResponse[]) {
     const labels = sessions.map((_, index) => (index + 1).toString());
     const effluentVolume = sessions.map(session => session.effluent_volume);
+    const sessionDates = sessions.map(session => new Date(session.session_date).toLocaleDateString());
+    const sessionTypes = sessions.map(session => session.session_type); // Assuming `session_type` is "pre" or "post"
 
     const allData = [...effluentVolume];
     const dynamicMin = Math.min(...allData) - 10;
@@ -74,6 +76,17 @@ export class DialysisMeasurementsGraphComponent implements OnInit {
         title: {
           display: true,
           text: 'Dialysis Measurements Over Selected Sessions'
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const datasetLabel = context.dataset.label || '';
+              const value = context.raw;
+              const date = sessionDates[context.dataIndex];
+              const type = sessionTypes[context.dataIndex];
+              return `${datasetLabel}: ${value} (Date: ${date}, Type: ${type})`;
+            }
+          }
         }
       },
       scales: {

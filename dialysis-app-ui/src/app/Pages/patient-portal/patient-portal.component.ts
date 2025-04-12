@@ -13,6 +13,7 @@ import {
 } from "../../Components/graphing/dialysis-measurements-graph/dialysis-measurements-graph.component";
 import {TabPanel, TabView} from "primeng/tabview";
 import {WeightComponent} from "../../Components/graphing/weight/weight.component";
+import {ProteinComponent} from "../../Components/graphing/protein/protein.component";
 
 @Component({
   selector: 'app-patient-portal',
@@ -31,7 +32,8 @@ import {WeightComponent} from "../../Components/graphing/weight/weight.component
         DialysisMeasurementsGraphComponent,
         TabPanel,
         TabView,
-        WeightComponent
+        WeightComponent,
+        ProteinComponent
     ],
   templateUrl: './patient-portal.component.html',
   styleUrl: './patient-portal.component.scss'

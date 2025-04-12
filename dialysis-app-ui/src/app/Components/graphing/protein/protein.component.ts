@@ -1,23 +1,18 @@
 import { Component, OnInit } from '@angular/core';
-import { DatePicker } from "primeng/datepicker";
-import { UIChart } from "primeng/chart";
-import { ChartData, ChartOptions } from "chart.js";
-import { DialysisService } from "../../../Services/dialysis.service";
-import { DialysisSessionResponse } from "../../../Models/dialysis";
-import { FormsModule } from "@angular/forms";
-import { GraphingService } from "../../../Services/graphing.service";
+import { ChartModule } from 'primeng/chart';
+import { FormsModule } from '@angular/forms';
+import { DatePicker } from 'primeng/datepicker';
+import { ChartData, ChartOptions } from 'chart.js';
+import { DialysisSessionResponse } from '../../../Models/dialysis';
+import { GraphingService } from '../../../Services/graphing.service';
 
 @Component({
-  selector: 'app-weight',
-  imports: [
-    DatePicker,
-    UIChart,
-    FormsModule
-  ],
-  templateUrl: './weight.component.html',
-  styleUrls: ['./weight.component.scss']
+  selector: 'app-protein',
+  imports: [ChartModule, FormsModule, DatePicker],
+  templateUrl: './protein.component.html',
+  styleUrls: ['./protein.component.scss']
 })
-export class WeightComponent implements OnInit {
+export class ProteinComponent implements OnInit {
   dateRange: Date[] = [];
   chartData: ChartData<'line'> | undefined;
   chartOptions: ChartOptions<'line'> | undefined;
@@ -49,42 +44,34 @@ export class WeightComponent implements OnInit {
 
   updateChartData(sessions: DialysisSessionResponse[]) {
     const labels = sessions.map((_, index) => (index + 1).toString());
-    const weight = sessions.map(session => session.weight);
+    const proteinLevels = sessions.map(session => session.protein); // Assuming `protein` is a field in the session
     const sessionDates = sessions.map(session => new Date(session.session_date).toLocaleDateString());
     const sessionTypes = sessions.map(session => session.session_type); // Assuming `session_type` is "pre" or "post"
 
-    const dynamicMin = Math.min(...weight) - 10;
-    const dynamicMax = Math.max(...weight) + 10;
+    const dynamicMin = Math.min(...proteinLevels) - 10;
+    const dynamicMax = Math.max(...proteinLevels) + 10;
 
     this.chartData = {
       labels,
       datasets: [
         {
-          label: 'Weight',
-          data: weight,
+          label: 'Protein Levels',
+          data: proteinLevels,
           fill: false,
-          borderColor: '#e97a42',
-          backgroundColor: '#e97a42',
-          borderDash: [5, 5],
-          tension: 0.3,
-          pointStyle: 'rect',
-          pointRadius: 6,
-          pointBorderWidth: 2
+          borderColor: '#4caf50',
+          tension: 0.1
         }
       ]
     };
 
     this.chartOptions = {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
-        legend: {
-          labels: {
-            usePointStyle: true
-          }
-        },
+        legend: { position: 'top' },
         title: {
           display: true,
-          text: 'Weight Over Selected Sessions',
+          text: 'Protein Levels Over Selected Sessions'
         },
         tooltip: {
           callbacks: {
@@ -100,18 +87,12 @@ export class WeightComponent implements OnInit {
       },
       scales: {
         y: {
-          title: {
-            display: true,
-            text: 'Weight (kg)'
-          },
+          title: { display: true, text: 'Protein Levels (g/dL)' },
           min: dynamicMin,
           max: dynamicMax
         },
         x: {
-          title: {
-            display: true,
-            text: 'Session Number'
-          }
+          title: { display: true, text: 'Session Number' }
         }
       }
     };

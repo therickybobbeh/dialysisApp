@@ -46,6 +46,8 @@ export class BloodPressureComponent implements OnInit {
     const labels = sessions.map((_, index) => (index + 1).toString());
     const systolicData = sessions.map(session => session.systolic);
     const diastolicData = sessions.map(session => session.diastolic);
+    const sessionDates = sessions.map(session => new Date(session.session_date).toLocaleDateString());
+    const sessionTypes = sessions.map(session => session.session_type); // Assuming `type` is "pre" or "post"
 
     const allData = [...systolicData, ...diastolicData];
     const dynamicMin = Math.min(...allData) - 10;
@@ -80,6 +82,17 @@ export class BloodPressureComponent implements OnInit {
         title: {
           display: true,
           text: 'Blood Pressure Trend Over Selected Sessions'
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const datasetLabel = context.dataset.label || '';
+              const value = context.raw;
+              const date = sessionDates[context.dataIndex];
+              const type = sessionTypes[context.dataIndex];
+              return `${datasetLabel}: ${value} (Date: ${date}, Type: ${type})`;
+            }
+          }
         }
       },
       scales: {
