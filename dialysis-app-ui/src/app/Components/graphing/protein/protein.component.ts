@@ -1,10 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { ChartModule } from 'primeng/chart';
-import { FormsModule } from '@angular/forms';
+import { FormsModule} from "@angular/forms";
 import { DatePicker } from 'primeng/datepicker';
 import { ChartData, ChartOptions } from 'chart.js';
 import { DialysisSessionResponse } from '../../../Models/dialysis';
 import { GraphingService } from '../../../Services/graphing.service';
+import { ProviderService } from '../../../Services/provider.service';
 
 @Component({
   selector: 'app-protein',
@@ -12,12 +14,16 @@ import { GraphingService } from '../../../Services/graphing.service';
   templateUrl: './protein.component.html',
   styleUrls: ['./protein.component.scss']
 })
-export class ProteinComponent implements OnInit {
+export class ProteinComponent implements OnInit, OnDestroy {
   dateRange: Date[] = [];
   chartData: ChartData<'line'> | undefined;
   chartOptions: ChartOptions<'line'> | undefined;
+  private subscriptions = new Subscription();
 
-  constructor(private graphingService: GraphingService) {}
+  constructor(
+    private graphingService: GraphingService,
+    private providerService: ProviderService
+  ) {}
 
   async ngOnInit() {
     const today = new Date();
@@ -26,6 +32,12 @@ export class ProteinComponent implements OnInit {
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(today.getDate() - 7);
     this.dateRange = [sevenDaysAgo, yesterday];
+
+    this.subscriptions.add(
+      this.providerService.getSelectedPatient().subscribe(() => {
+        this.fetchDataAndUpdateChart();
+      })
+    );
 
     await this.fetchDataAndUpdateChart();
   }
@@ -96,5 +108,9 @@ export class ProteinComponent implements OnInit {
         }
       }
     };
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.unsubscribe();
   }
 }

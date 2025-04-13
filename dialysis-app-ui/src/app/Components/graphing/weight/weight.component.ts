@@ -1,10 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { DatePicker } from "primeng/datepicker";
 import { UIChart } from "primeng/chart";
 import { ChartData, ChartOptions } from "chart.js";
 import { DialysisSessionResponse } from "../../../Models/dialysis";
 import { FormsModule } from "@angular/forms";
 import { GraphingService } from "../../../Services/graphing.service";
+import { ProviderService } from "../../../Services/provider.service";
 
 @Component({
   selector: 'app-weight',
@@ -16,12 +18,16 @@ import { GraphingService } from "../../../Services/graphing.service";
   templateUrl: './weight.component.html',
   styleUrls: ['./weight.component.scss']
 })
-export class WeightComponent implements OnInit {
+export class WeightComponent implements OnInit, OnDestroy {
   dateRange: Date[] = [];
   chartData: ChartData<'line'> | undefined;
   chartOptions: ChartOptions<'line'> | undefined;
+  private subscriptions = new Subscription();
 
-  constructor(private graphingService: GraphingService) {}
+  constructor(
+    private graphingService: GraphingService,
+    private providerService: ProviderService
+  ) {}
 
   async ngOnInit() {
     const today = new Date();
@@ -30,6 +36,12 @@ export class WeightComponent implements OnInit {
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(today.getDate() - 7);
     this.dateRange = [sevenDaysAgo, yesterday];
+
+    this.subscriptions.add(
+      this.providerService.getSelectedPatient().subscribe(() => {
+        this.fetchDataAndUpdateChart();
+      })
+    );
 
     await this.fetchDataAndUpdateChart();
   }
@@ -50,7 +62,7 @@ export class WeightComponent implements OnInit {
     const labels = sessions.map((_, index) => (index + 1).toString());
     const weight = sessions.map(session => session.weight);
     const sessionDates = sessions.map(session => new Date(session.session_date).toLocaleDateString());
-    const sessionTypes = sessions.map(session => session.session_type); // Assuming `session_type` is "pre" or "post"
+    const sessionTypes = sessions.map(session => session.session_type);
 
     const dynamicMin = Math.min(...weight) - 10;
     const dynamicMax = Math.max(...weight) + 10;
@@ -83,7 +95,7 @@ export class WeightComponent implements OnInit {
         },
         title: {
           display: true,
-          text: 'Weight Over Selected Sessions',
+          text: 'Weight Over Selected Sessions'
         },
         tooltip: {
           callbacks: {
@@ -114,5 +126,9 @@ export class WeightComponent implements OnInit {
         }
       }
     };
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.unsubscribe();
   }
 }
