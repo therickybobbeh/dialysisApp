@@ -44,9 +44,9 @@ export class ProteinComponent implements OnInit {
 
   updateChartData(sessions: DialysisSessionResponse[]) {
     const labels = sessions.map((_, index) => (index + 1).toString());
-    const proteinLevels = sessions.map(session => session.protein); // Assuming `protein` is a field in the session
+    const proteinLevels = sessions.map(session => session.protein);
     const sessionDates = sessions.map(session => new Date(session.session_date).toLocaleDateString());
-    const sessionTypes = sessions.map(session => session.session_type); // Assuming `session_type` is "pre" or "post"
+    const sessionTypes = sessions.map(session => session.session_type);
 
     const dynamicMin = Math.min(...proteinLevels) - 10;
     const dynamicMax = Math.max(...proteinLevels) + 10;

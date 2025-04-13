@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import {NotificationsComponent} from "../../Components/notifications/notifications.component";
 import {TableModule} from "primeng/table";
-import { PatientTableCard} from "../../Models/tables";
 import {NavBarComponent} from "../../Components/nav-bar/nav-bar.component";
 import {MeasurementsComponent} from "../../Components/measurements/measurements.component";
 import {

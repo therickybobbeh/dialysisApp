@@ -1,5 +1,5 @@
-import {AfterViewInit, Component, Input, OnDestroy, OnInit} from '@angular/core';
-import {FormBuilder, FormGroup, ReactiveFormsModule} from '@angular/forms';
+import { Component, Input, OnDestroy, OnInit} from '@angular/core';
+import {FormBuilder, ReactiveFormsModule} from '@angular/forms';
 import {DialysisService} from '../../Services/dialysis.service';
 import {AuthService} from '../../Services/authentication.service';
 import {DialysisSessionResponse} from '../../Models/dialysis';
@@ -40,7 +40,7 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
         {label: 'Pre', value: 'pre'},
         {label: 'Post', value: 'post'}
     ];
-    private currentPatientId: number = -1;
+    private currentPatientId = -1;
     private subscription = new Subscription;
     private selectedPatient: PatientTableCard | null = null;
 
@@ -70,11 +70,6 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
                 }
             })
         );
-        // this.dialysisService.getAllSessions()
-        //     .pipe(take(1))
-        //     .subscribe(sessions => {
-        //       this.allDialysisSessions = sessions;
-        //     });
     }
 
     ngOnDestroy() {

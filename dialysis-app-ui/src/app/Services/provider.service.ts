@@ -3,12 +3,14 @@ import {DialysisSessionCreate, DialysisSessionResponse} from "../Models/dialysis
 import {BehaviorSubject, Observable, take} from "rxjs";
 import {HttpClient, HttpHeaders} from "@angular/common/http";
 import {PatientTableCard} from "../Models/tables";
+import {environment} from "../../environments/environment";
 
 @Injectable({
     providedIn: 'root'
 })
 export class ProviderService {
-    private API_BASE_URL = 'http://localhost:8004/provider';
+    private API_BASE_URL = environment.apiUrl + '/provider';
+    // private API_BASE_URL = 'http://localhost:8004/provider';
     private selectedPatientSubject = new BehaviorSubject<PatientTableCard | null>(null);
     constructor(private http: HttpClient) {
     }

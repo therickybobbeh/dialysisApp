@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { DatePicker } from "primeng/datepicker";
 import { UIChart } from "primeng/chart";
 import { ChartData, ChartOptions } from "chart.js";
-import { DialysisService } from "../../../Services/dialysis.service";
 import { DialysisSessionResponse } from "../../../Models/dialysis";
 import { FormsModule } from "@angular/forms";
 import { GraphingService } from "../../../Services/graphing.service";

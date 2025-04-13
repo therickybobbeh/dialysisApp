@@ -46,7 +46,7 @@ export class DialysisMeasurementsGraphComponent implements OnInit {
     const labels = sessions.map((_, index) => (index + 1).toString());
     const effluentVolume = sessions.map(session => session.effluent_volume);
     const sessionDates = sessions.map(session => new Date(session.session_date).toLocaleDateString());
-    const sessionTypes = sessions.map(session => session.session_type); // Assuming `session_type` is "pre" or "post"
+    const sessionTypes = sessions.map(session => session.session_type);
 
     const allData = [...effluentVolume];
     const dynamicMin = Math.min(...allData) - 10;

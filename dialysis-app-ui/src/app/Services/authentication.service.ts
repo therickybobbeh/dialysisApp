@@ -1,11 +1,14 @@
 import {Injectable} from '@angular/core';
 import {HttpClient, HttpParams} from '@angular/common/http';
 import {Router} from '@angular/router';
+import { environment} from "../../environments/environment";
 
 @Injectable({providedIn: 'root'})
 export class AuthService {
-    //TODO: add to the env
-    private apiBaseUrl = 'http://localhost:8004';
+
+    private apiBaseUrl = environment.apiUrl;
+
+    // private apiBaseUrl =  process.env['API_BASE_URL'] || 'http://localhost:8004/provider';
 
     constructor(private http: HttpClient, private router: Router) {
     }
