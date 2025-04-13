@@ -1,6 +1,11 @@
 <p-card class="mb-4">
     <ng-template pTemplate="header">
-        <h2 class="mb-0">{{ measurementsTitle }}</h2>
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 text-muted ml-4">Select Date and Session Type to Pull Old Records</h5>
+            <span class="badge mr-3 mt-3" [ngClass]="{ 'bg-danger': isEditing, 'bg-primary': !isEditing }">
+                {{ isEditing ? 'Editing Saved Data' : 'New' }}
+            </span>
+        </div>
     </ng-template>
     <form [formGroup]="dialysisData" (ngSubmit)="saveData()" class="p-fluid">
         <div class="row g-3 mb-3">
@@ -11,6 +16,7 @@
                             id="session_date_picker"
                             formControlName="session_date"
                             [showIcon]="true"
+                            (onSelect)="onDateOrTypeChange()"
                     ></p-datePicker>
                 </div>
             </div>
@@ -22,6 +28,7 @@
                         optionLabel="label"
                         optionValue="value"
                         formControlName="session_type"
+                        (onChange)="onDateOrTypeChange()"
                         class="w-100"
                 >
                 </p-select>
@@ -92,15 +99,29 @@
                 ></p-datePicker>
             </div>
         </div>
-        <div class="d-flex justify-content-center">
-            <button
-                    pButton
-                    type="submit"
-                    pButtonLabel="Submit"
-                    class="btn btn-primary"
-                    [disabled]="dialysisData.invalid"
-            >Submit
-            </button>
+        <div class="row justify-content-center align-items-center mt-3">
+            <div class="col-auto">
+                <button
+                        type="submit"
+                        pButtonLabel="Submit"
+                        class="btn btn-primary"
+                        [disabled]="dialysisData.invalid"
+                >
+                    Submit
+                </button>
+            </div>
+            <ng-container *ngIf="isEditing">
+                <div class="col-auto">
+                    <button
+                            type="button"
+                            pButtonLabel="Delete"
+                            class="btn btn-danger"
+                            (click)="deleteSessionData()"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </ng-container>
         </div>
     </form>
 </p-card>

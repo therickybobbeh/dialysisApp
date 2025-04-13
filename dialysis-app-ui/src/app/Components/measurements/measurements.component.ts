@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit} from '@angular/core';
+import {Component, Input, OnDestroy, OnInit} from '@angular/core';
 import {FormBuilder, ReactiveFormsModule} from '@angular/forms';
 import {DialysisService} from '../../Services/dialysis.service';
 import {AuthService} from '../../Services/authentication.service';
@@ -13,7 +13,8 @@ import {DialysisTreatmentData} from '../../Models/patientMeasurements';
 import {DatePicker} from "primeng/datepicker";
 import {Select} from "primeng/select";
 import {ProviderService} from "../../Services/provider.service";
-import {PatientTableCard} from "../../Models/tables"; // Import the class
+import {PatientTableCard} from "../../Models/tables";
+import {NgClass, NgIf} from "@angular/common"; // Import the class
 
 @Component({
     selector: 'app-measurements',
@@ -27,7 +28,9 @@ import {PatientTableCard} from "../../Models/tables"; // Import the class
         ButtonDirective,
         ButtonLabel,
         DatePicker,
-        Select
+        Select,
+        NgClass,
+        NgIf
     ],
     styleUrls: ['./measurements.component.scss']
 })
@@ -35,7 +38,7 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
     @Input() selection: 'pre' | 'post' | undefined;
     allDialysisSessions: DialysisSessionResponse[] = [];
     measurementsTitle = 'Dialysis';
-    dialysisData: DialysisTreatmentData; // Use the class
+    dialysisData: DialysisTreatmentData;
     sessionTypes = [
         {label: 'Pre', value: 'pre'},
         {label: 'Post', value: 'post'}
@@ -43,6 +46,8 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
     private currentPatientId = -1;
     private subscription = new Subscription;
     private selectedPatient: PatientTableCard | null = null;
+    protected isEditing = false;
+    private previousValues: { session_date: string; session_type: string } | null = null;
 
     constructor(
         private fb: FormBuilder,
@@ -62,57 +67,49 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
                 this.selectedPatient = patient;
             })
         );
-        this.subscription.add(
-            this.dialysisData.get('session_date')?.valueChanges.subscribe(dateRange => {
-                if (dateRange && dateRange.length === 2) {
-                    const [startDate, endDate] = dateRange;
-                    this.fetchSessions(startDate, endDate);
-                }
-            })
-        );
     }
 
     ngOnDestroy() {
         this.subscription.unsubscribe()
     }
 
-    fetchSessions(startDate: Date, endDate: Date) {
-        //todo: change to one ay
 
-        // this.dialysisService.getSessionsByDateRange(startDate, endDate)
-        //     .pipe(
-        //         take(1),
-        //         catchError(error => {
-        //           console.error('Error fetching dialysis sessions:', error);
-        //           return of([]);
-        //         })
-        //     )
-        //     .subscribe(sessions => {
-        //       this.allDialysisSessions = sessions;
-        //     });
+    onDateOrTypeChange(): void {
+        this.isEditing = false;
+        const {session_date, session_type} = this.dialysisData.value;
+        if (session_date && session_type) {
+            const currentDateStr = session_date.toISOString();
+            if (!this.previousValues ||
+                this.previousValues.session_date !== currentDateStr ||
+                this.previousValues.session_type !== session_type) {
+                this.fetchOldData(session_date, session_type);
+            }
+            this.previousValues = {session_date: currentDateStr, session_type};
+        }
     }
 
-    // saveData() {
-    //     this.dialysisService.logDialysisSession(this.dialysisData.value)
-    //         .pipe(
-    //             take(1),
-    //             catchError(error => {
-    //                 console.error('Error logging dialysis data:', error);
-    //                 return of(null);
-    //             })
-    //         )
-    //         .subscribe(response => {
-    //             if (response) {
-    //                 this.dialysisData.reset();
-    //                 this.dialysisData = new DialysisTreatmentData();
-    //                 console.log('Logged dialysis data:', response);
-    //             } else {
-    //                 console.log('Failed to log dialysis data.');
-    //             }
-    //         });
-    // }
-    saveData() {
+    fetchOldData(selectedDate: Date, type: string): void {
+        const isoDate = selectedDate.toISOString();
+        this.dialysisService.getDialysisSessions(isoDate, isoDate, undefined, type)
+            .pipe(take(1))
+            .subscribe(filteredSessions => {
+                this.dialysisData.reset();
+                if (filteredSessions && filteredSessions.length > 0) {
+                    const session = filteredSessions[0];
+                    if (session.session_date) {
+                        session.session_date = new Date(session.session_date) as any;
+                    }
+                    if (session.session_duration) {
+                        const parsedDuration = new Date(session.session_duration);
+                        session.session_duration = isNaN(parsedDuration.getTime()) ? null : parsedDuration as any;
+                    }
+                    this.dialysisData.patchValue(session);
+                    this.isEditing = true;
+                }
+            });
+    }
 
+    saveData() {
         const isProvider = this.authService.getUserRole() === "provider";
         if (isProvider) {
             if (this.selectedPatient) {
@@ -156,5 +153,24 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
         } else {
             console.error('No patient selected.');
         }
+    }
+
+    deleteSessionData(): void {
+        const sessionId = this.dialysisData.value.session_id;
+        if (!sessionId) {
+            console.error("No session id available.");
+            return;
+        }
+        this.dialysisService.deleteDialysisSession(sessionId)
+            .pipe(take(1))
+            .subscribe({
+                next: (response: any) => {
+                    console.log("Session deleted successfully:", response);
+                    this.fetchOldData(this.dialysisData.value.session_date, this.dialysisData.value.session_type);
+                },
+                error: (err: any) => {
+                    console.error("Error deleting session:", err);
+                }
+            });
     }
 }
