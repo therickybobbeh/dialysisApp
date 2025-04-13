@@ -1,18 +1,20 @@
 import {Injectable} from '@angular/core';
 import {HttpClient, HttpHeaders, HttpParams} from '@angular/common/http';
-import {Observable} from 'rxjs';
+import {Observable, take} from 'rxjs';
 import {DialysisSessionCreate, DialysisSessionResponse} from '../Models/dialysis';
-import {ProviderDashboardRow} from '../Models/provider';
+import {ProviderService} from "./provider.service";
+import {environment} from "../../environments/environment";
 
 @Injectable({
     providedIn: 'root'
 })
 export class DialysisService {
-    private API_BASE_URL = 'http://localhost:8004'; // Update with your actual API base URL
+    private API_BASE_URL = environment.apiUrl
     private baseUrl = `${this.API_BASE_URL}/dialysis`;
     private token = localStorage.getItem('token');
 
-    constructor(private http: HttpClient) {
+    constructor(private http: HttpClient,
+                private providerService: ProviderService) {
     }
 
     /**
@@ -20,7 +22,7 @@ export class DialysisService {
      * Log a new dialysis session.
      */
     logDialysisSession(sessionData: DialysisSessionCreate): Observable<DialysisSessionResponse> {
-        const token = localStorage.getItem('token'); // or this.token
+        const token = localStorage.getItem('token');
         const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
         return this.http.post<DialysisSessionResponse>(
             `${this.baseUrl}/sessions`,
@@ -31,56 +33,37 @@ export class DialysisService {
 
     /**
      * GET /dialysis/sessions
-     * Retrieve dialysis sessions for the current patient (requires user.role = "patient").
-     * Accepts optional start_date, end_date as query params.
+     * Retrieve dialysis sessions for the current patient (requires user.role = "patient")
+     * or for a specific patient (requires user.role = "provider").
+     * Accepts optional start_date, end_date, and patient_id as query params.
      */
-    getDialysisSessions(start_date?: string, end_date?: string): Observable<DialysisSessionResponse[]> {
-        const token = localStorage.getItem('token'); // or this.token
+    getDialysisSessions(start_date?: string, end_date?: string, patient_id?: number): Observable<DialysisSessionResponse[]> {
+        //TODO: lets also allow for the specification of a pre and post or we can make a new endpoint to get 1 session
+        const token = localStorage.getItem('token');
         const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
         let params = new HttpParams();
+
         if (start_date) {
             params = params.set('start_date', start_date);
         }
         if (end_date) {
             params = params.set('end_date', end_date);
         }
+        // Check if patient_id is provided; otherwise, use the selected patient from ProviderService
+        if (!patient_id) {
+            const selectedPatient = this.providerService.getSelectedPatient();
+            selectedPatient.pipe(take(1)).subscribe((patient) => {
+                if (patient) {
+                    params = params.set('patient_id', patient.id.toString());
+                }
+            });
+        } else {
+            params = params.set('patient_id', patient_id.toString());
+        }
+
         return this.http.get<DialysisSessionResponse[]>(`${this.baseUrl}/sessions`, {headers, params});
     }
 
-    // /**
-    //  * GET /dialysis/sessions
-    //  * Retrieve dialysis sessions for the current patient (requires user.role = "patient").
-    //  * Accepts optional start_date, end_date as query params.
-    //  */
-    // getSessionsByDateRange(startDate: Date, endDate: Date): Observable<DialysisSessionResponse[]> {
-    //     const token = localStorage.getItem('token'); // or this.token
-    //     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-    //     let params = new HttpParams();
-    //     if (startDate) {
-    //         params = params.set('start_date', startDate.toISOString());
-    //     }
-    //     if (endDate) {
-    //         params = params.set('end_date', endDate.toISOString());
-    //     }
-    //     return this.http.get<DialysisSessionResponse[]>(`${this.baseUrl}/sessions`, { headers, params });
-    // }
-
-    /**
-     * GET /dialysis/provider-dashboard
-     * Fetch flagged patients info (requires user.role = "provider").
-     * Accepts optional start_date, end_date as query params.
-     */
-    getProviderDashboard(start_date?: string, end_date?: string): Observable<ProviderDashboardRow[]> {
-        let params = new HttpParams();
-        if (start_date) {
-            params = params.set('start_date', start_date);
-        }
-        if (end_date) {
-            params = params.set('end_date', end_date);
-        }
-
-        return this.http.get<ProviderDashboardRow[]>(`${this.baseUrl}/provider-dashboard`, {params});
-    }
 
     /**
      * PUT /dialysis/sessions/{session_id}
@@ -90,14 +73,6 @@ export class DialysisService {
         return this.http.put<DialysisSessionResponse>(`${this.baseUrl}/sessions/${sessionId}`, sessionData);
     }
 
-    /**
-     * GET /dialysis/all-sessions
-     * Provider can view all sessions from all patients.
-     */
-    getAllSessions(): Observable<DialysisSessionResponse[]> {
-        const headers = new HttpHeaders().set('Authorization', `Bearer ${this.token}`);
-        return this.http.get<DialysisSessionResponse[]>(`${this.baseUrl}/all-sessions`, {headers});
-    }
 
     /**
      * DELETE /dialysis/sessions/{session_id}
@@ -105,25 +80,5 @@ export class DialysisService {
      */
     deleteDialysisSession(sessionId: number): Observable<any> {
         return this.http.delete(`${this.baseUrl}/sessions/${sessionId}`);
-    }
-
-    /**
-     * GET /dialysis/patient/live-updates
-     * Return recent dialysis sessions from the last 5 minutes (requires patient role).
-     */
-    getPatientLiveUpdates(): Observable<DialysisSessionResponse[] | { message: string }> {
-        return this.http.get<DialysisSessionResponse[] | { message: string }>(
-            `${this.baseUrl}/patient/live-updates`
-        );
-    }
-
-    /**
-     * GET /dialysis/provider/live-updates
-     * Return recent sessions from last 5 minutes for all patients (requires provider role).
-     */
-    getProviderLiveUpdates(): Observable<DialysisSessionResponse[] | { message: string }> {
-        return this.http.get<DialysisSessionResponse[] | { message: string }>(
-            `${this.baseUrl}/provider/live-updates`
-        );
     }
 }

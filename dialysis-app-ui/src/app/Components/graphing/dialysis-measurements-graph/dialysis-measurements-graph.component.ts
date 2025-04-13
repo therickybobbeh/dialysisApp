@@ -1,59 +1,65 @@
 import { Component, OnInit } from '@angular/core';
-import { ChartModule } from "primeng/chart";
-import { FormsModule } from "@angular/forms";
-import { DialysisService } from '../../../Services/dialysis.service';
+import { ChartModule } from 'primeng/chart';
+import { FormsModule } from '@angular/forms';
+import { DatePicker } from 'primeng/datepicker';
+import { ChartData, ChartOptions } from 'chart.js';
 import { DialysisSessionResponse } from '../../../Models/dialysis';
-import {ChartData, ChartOptions} from "chart.js";
-import {DatePicker} from "primeng/datepicker";
+import { GraphingService } from '../../../Services/graphing.service';
 
 @Component({
   selector: 'app-dialysis-measurements-graph',
   imports: [ChartModule, FormsModule, DatePicker],
   templateUrl: './dialysis-measurements-graph.component.html',
-  styleUrl: './dialysis-measurements-graph.component.scss'
+  styleUrls: ['./dialysis-measurements-graph.component.scss']
 })
 export class DialysisMeasurementsGraphComponent implements OnInit {
   dateRange: Date[] = [];
-  data: ChartData<'line'> | undefined;
-  options: ChartOptions<'line'> | undefined;
+  chartData: ChartData<'line'> | undefined;
+  chartOptions: ChartOptions<'line'> | undefined;
 
-  constructor(private dialysisService: DialysisService) {}
+  constructor(private graphingService: GraphingService) {}
 
-  ngOnInit() {
+  async ngOnInit() {
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(today.getDate() - 7);
     this.dateRange = [sevenDaysAgo, yesterday];
-    this.fetchDataAndUpdateChart();
+
+    await this.fetchDataAndUpdateChart();
   }
 
-  fetchDataAndUpdateChart() {
-    if (this.dateRange.length === 2) {
-      const [startDate, endDate] = this.dateRange;
-      this.dialysisService.getDialysisSessions(startDate.toISOString(), endDate.toISOString())
-          .subscribe((sessions: DialysisSessionResponse[]) => {
-            this.updateChartData(sessions);
-          });
+  async fetchDataAndUpdateChart() {
+    if (this.dateRange.length !== 2) {
+      console.warn('Invalid date range selected.');
+      return;
+    }
+
+    const sessions = await this.graphingService.fetchSessions(this.dateRange as [Date, Date]);
+    if (sessions) {
+      this.updateChartData(sessions);
     }
   }
 
   updateChartData(sessions: DialysisSessionResponse[]) {
     const labels = sessions.map((_, index) => (index + 1).toString());
-    const effluent_volume = sessions.map(session => session.effluent_volume);
-    //TODO: change to weight
-    const weight = sessions.map(session => session.weight);
+    const effluentVolume = sessions.map(session => session.effluent_volume);
+    const sessionDates = sessions.map(session => new Date(session.session_date).toLocaleDateString());
+    const sessionTypes = sessions.map(session => session.session_type);
 
-    this.data = {
-      labels: labels,
+    const allData = [...effluentVolume];
+    const dynamicMin = Math.min(...allData) - 10;
+    const dynamicMax = Math.max(...allData) + 10;
+
+    this.chartData = {
+      labels,
       datasets: [
         {
           label: 'Effluent Volume',
-          data: effluent_volume,
+          data: effluentVolume,
           fill: false,
           borderColor: '#f6c744',
-          backgroundColor: '#f6c744',
           tension: 0.3,
           pointStyle: 'circle',
           pointRadius: 6,
@@ -62,33 +68,35 @@ export class DialysisMeasurementsGraphComponent implements OnInit {
       ]
     };
 
-    this.options = {
+    this.chartOptions = {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
-        legend: {
-          labels: {
-            usePointStyle: true
-          }
-        },
+        legend: { position: 'top' },
         title: {
           display: true,
-          text: 'Dialysis Measurements Over Selected Sessions',
+          text: 'Dialysis Measurements Over Selected Sessions'
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const datasetLabel = context.dataset.label || '';
+              const value = context.raw;
+              const date = sessionDates[context.dataIndex];
+              const type = sessionTypes[context.dataIndex];
+              return `${datasetLabel}: ${value} (Date: ${date}, Type: ${type})`;
+            }
+          }
         }
       },
       scales: {
         y: {
-          title: {
-            display: true,
-            text: 'Measurement Level'
-          },
-          min: 1,
-          max: 5.2
+          title: { display: true, text: 'Measurement Level' },
+          min: dynamicMin,
+          max: dynamicMax
         },
         x: {
-          title: {
-            display: true,
-            text: 'Session Number'
-          }
+          title: { display: true, text: 'Session Number' }
         }
       }
     };

@@ -90,7 +90,7 @@ def create_dialysis_session(
     user: User = Depends(get_current_user)
 ):
     """
-    Create a new dialysis session for a specific patient assigned to the provider.
+    Create or update a dialysis session for a specific patient assigned to the provider.
     """
     if user.role != "provider":
         raise HTTPException(status_code=403, detail="Access denied")
@@ -99,26 +99,55 @@ def create_dialysis_session(
     if patient_id not in user.patients:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    # Create a new dialysis session
-    new_session = DialysisSession(
-        session_type=session_data.session_type,
-        session_id=session_data.session_id,
-        patient_id=patient_id,
-        weight=session_data.weight,
-        diastolic=session_data.diastolic,
-        systolic=session_data.systolic,
-        effluent_volume=session_data.effluent_volume,
-        session_date=session_data.session_date,
-        session_duration=session_data.session_duration,
-        protein=session_data.protein
-    )
-
     try:
+        # Check if session_id exists in the request
+        if session_data.session_id:
+            existing_session = db.query(DialysisSession).filter(
+                DialysisSession.session_id == session_data.session_id,
+                DialysisSession.patient_id == patient_id
+            ).first()
+
+            if existing_session:
+                existing_session.session_type = session_data.session_type
+                existing_session.weight = session_data.weight
+                existing_session.diastolic = session_data.diastolic
+                existing_session.systolic = session_data.systolic
+                existing_session.effluent_volume = session_data.effluent_volume
+                existing_session.session_date = session_data.session_date
+                existing_session.session_duration = session_data.session_duration
+                existing_session.protein = session_data.protein
+
+                db.commit()
+                db.refresh(existing_session)
+                return DialysisSessionResponse.from_orm(existing_session)
+        else:
+            # Fetch the last session ID for the patient
+            last_session = db.query(DialysisSession).filter(
+                DialysisSession.patient_id == patient_id
+            ).order_by(DialysisSession.session_date.desc()).first()
+
+            session_data.session_id = last_session.session_id + 1 if last_session else 1
+
+        # Create a new dialysis session
+        new_session = DialysisSession(
+            session_type=session_data.session_type,
+            session_id=session_data.session_id,
+            patient_id=patient_id,
+            weight=session_data.weight,
+            diastolic=session_data.diastolic,
+            systolic=session_data.systolic,
+            effluent_volume=session_data.effluent_volume,
+            session_date=session_data.session_date,
+            session_duration=session_data.session_duration,
+            protein=session_data.protein
+        )
+
         db.add(new_session)
         db.commit()
         db.refresh(new_session)
         return DialysisSessionResponse.from_orm(new_session)
+
     except Exception as e:
         db.rollback()
-        logger.error(f"Error creating dialysis session: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create dialysis session")
+        logger.error(f"Error creating or updating dialysis session: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create or update dialysis session")

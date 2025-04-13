@@ -1,26 +1,25 @@
 import { Component, OnInit } from '@angular/core';
-import { ChartModule } from "primeng/chart";
-import { FormsModule } from "@angular/forms";
-import { DialysisService} from "../../../Services/dialysis.service";
-import { DialysisSessionResponse} from "../../../Models/dialysis";
-import {ChartData, ChartOptions} from "chart.js";
-import {DatePicker} from "primeng/datepicker";
+import { ChartModule } from 'primeng/chart';
+import { FormsModule } from '@angular/forms';
+import { DatePicker } from 'primeng/datepicker';
+import { ChartData, ChartOptions } from 'chart.js';
+import { DialysisSessionResponse } from '../../../Models/dialysis';
+import { GraphingService } from '../../../Services/graphing.service';
 
 @Component({
   selector: 'app-blood-pressure',
   imports: [ChartModule, FormsModule, DatePicker],
   templateUrl: './blood-pressure.component.html',
-  styleUrl: './blood-pressure.component.scss'
+  styleUrls: ['./blood-pressure.component.scss']
 })
 export class BloodPressureComponent implements OnInit {
   dateRange: Date[] = [];
   chartData: ChartData<'line'> | undefined;
   chartOptions: ChartOptions<'line'> | undefined;
 
-  constructor(private dialysisService: DialysisService) {}
+  constructor(private graphingService: GraphingService) {}
 
-   ngOnInit() {
-    // Set default date range to yesterday and 7 days before
+  async ngOnInit() {
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
@@ -28,17 +27,18 @@ export class BloodPressureComponent implements OnInit {
     sevenDaysAgo.setDate(today.getDate() - 7);
     this.dateRange = [sevenDaysAgo, yesterday];
 
-    // Fetch data and update chart
-    this.fetchDataAndUpdateChart();
+    await this.fetchDataAndUpdateChart();
   }
 
-  fetchDataAndUpdateChart() {
-    if (this.dateRange.length === 2) {
-      const [startDate, endDate] = this.dateRange;
-      this.dialysisService.getDialysisSessions(startDate.toISOString(), endDate.toISOString())
-        .subscribe((sessions: DialysisSessionResponse[]) => {
-          this.updateChartData(sessions);
-        });
+  async fetchDataAndUpdateChart() {
+    if (this.dateRange.length !== 2) {
+      console.warn('Invalid date range selected.');
+      return;
+    }
+
+    const sessions = await this.graphingService.fetchSessions(this.dateRange as [Date, Date]);
+    if (sessions) {
+      this.updateChartData(sessions);
     }
   }
 
@@ -46,9 +46,15 @@ export class BloodPressureComponent implements OnInit {
     const labels = sessions.map((_, index) => (index + 1).toString());
     const systolicData = sessions.map(session => session.systolic);
     const diastolicData = sessions.map(session => session.diastolic);
+    const sessionDates = sessions.map(session => new Date(session.session_date).toLocaleDateString());
+    const sessionTypes = sessions.map(session => session.session_type); // Assuming `type` is "pre" or "post"
+
+    const allData = [...systolicData, ...diastolicData];
+    const dynamicMin = Math.min(...allData) - 10;
+    const dynamicMax = Math.max(...allData) + 10;
 
     this.chartData = {
-      labels: labels,
+      labels,
       datasets: [
         {
           label: 'Systolic Pressure',
@@ -70,29 +76,33 @@ export class BloodPressureComponent implements OnInit {
 
     this.chartOptions = {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
-        legend: {
-          position: 'top'
-        },
+        legend: { position: 'top' },
         title: {
           display: true,
           text: 'Blood Pressure Trend Over Selected Sessions'
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const datasetLabel = context.dataset.label || '';
+              const value = context.raw;
+              const date = sessionDates[context.dataIndex];
+              const type = sessionTypes[context.dataIndex];
+              return `${datasetLabel}: ${value} (Date: ${date}, Type: ${type})`;
+            }
+          }
         }
       },
       scales: {
         y: {
-          title: {
-            display: true,
-            text: 'Blood Pressure (mmHg)'
-          },
-          min: 40,
-          max: 200
+          title: { display: true, text: 'Blood Pressure (mmHg)' },
+          min: dynamicMin,
+          max: dynamicMax
         },
         x: {
-          title: {
-            display: true,
-            text: 'Session Number'
-          }
+          title: { display: true, text: 'Session Number' }
         }
       }
     };

@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import {NotificationsComponent} from "../../Components/notifications/notifications.component";
 import {TableModule} from "primeng/table";
-import { PatientTableCard} from "../../Models/tables";
 import {NavBarComponent} from "../../Components/nav-bar/nav-bar.component";
 import {MeasurementsComponent} from "../../Components/measurements/measurements.component";
 import {
@@ -12,6 +11,7 @@ import {WeightComponent} from "../../Components/graphing/weight/weight.component
 import {Tabs, TabsModule} from "primeng/tabs";
 import {TabPanel, TabView} from "primeng/tabview";
 import {PatientListComponent} from "../../Components/patient-list/patient-list.component";
+import {ProteinComponent} from "../../Components/graphing/protein/protein.component";
 
 @Component({
   selector: 'app-provider-portal',
@@ -27,7 +27,8 @@ import {PatientListComponent} from "../../Components/patient-list/patient-list.c
     Tabs,
     TabPanel,
     TabView,
-    PatientListComponent
+    PatientListComponent,
+    ProteinComponent
   ],
   templateUrl: './provider-portal.component.html',
   styleUrl: './provider-portal.component.scss'
