@@ -25,8 +25,7 @@
                 <label for="session_date_picker" class="form-label">Select Date</label>
                 <p-datePicker id="session_date_picker"
                               formControlName="session_date"
-                              [showIcon]="true"
-                              (onSelect)="onDateOrTypeChange()">
+                              [showIcon]="true">
                 </p-datePicker>
             </div>
             <div class="col-md-6">
@@ -36,7 +35,6 @@
                           optionLabel="label"
                           optionValue="value"
                           formControlName="session_type"
-                          (onChange)="onDateOrTypeChange()"
                           class="w-100">
                 </p-select>
             </div>
