@@ -97,3 +97,9 @@
     </form>
 </p-card>
 <p-confirmDialog></p-confirmDialog>
+<p-dialog [(visible)]="displayErrorDialog" header="Error" modal="true" [closable]="false" [dismissableMask]="true">
+    <p>{{ errorMessage }}</p>
+    <div class="p-d-flex p-jc-end">
+        <button type="button" pButton label="Close" class="p-button-danger" (click)="displayErrorDialog = false"></button>
+    </div>
+</p-dialog>

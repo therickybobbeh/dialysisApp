@@ -18,6 +18,7 @@ import {NgClass, NgIf} from '@angular/common';
 import {ConfirmationService} from 'primeng/api';
 import {ConfirmDialog} from 'primeng/confirmdialog';
 import {Tooltip} from 'primeng/tooltip';
+import {Dialog} from "primeng/dialog";
 
 @Component({
     selector: 'app-measurements',
@@ -37,7 +38,8 @@ import {Tooltip} from 'primeng/tooltip';
         NgClass,
         NgIf,
         ConfirmDialog,
-        Tooltip
+        Tooltip,
+        Dialog
     ]
 })
 export class MeasurementsComponent implements OnInit, OnDestroy {
@@ -251,22 +253,31 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
     /**
      * Deletes the current session.
      */
-    deleteSessionData(): void {
-        const sessionId = this.dialysisData.value.session_id;
-        if (!sessionId) {
-            console.error('No session id available.');
-            return;
-        }
-        this.dialysisService.deleteDialysisSession(sessionId)
-            .pipe(take(1))
-            .subscribe({
-                next: response => {
-                    console.log('Session deleted successfully:', response);
-                    this.dialysisData.reset({patient_id: this.userId});
-                },
-                error: err => console.error('Error deleting session:', err)
-            });
+deleteSessionData(): void {
+    const sessionId = this.dialysisData.value.session_id;
+    if (!sessionId) {
+        console.error('No session id available.');
+        return;
     }
+    this.dialysisService.deleteDialysisSession(sessionId)
+        .pipe(take(1))
+        .subscribe({
+            next: response => {
+                console.log('Session deleted successfully:', response);
+                this.dialysisData.reset({ patient_id: this.userId });
+                alert('Session deleted successfully.');
+            },
+            error: err => {
+                console.error('Error deleting session:', err);
+                this.errorMessage = 'Error deleting session. Please try again.';
+                this.displayErrorDialog = true;
+            }
+        });
+}
+
+// Properties for error dialog
+displayErrorDialog: boolean = false;
+errorMessage: string = '';
 
     /**
      * Enables or disables form controls based on whether both session_date and session_type are set.
