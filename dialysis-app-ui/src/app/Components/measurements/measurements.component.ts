@@ -55,6 +55,7 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
     private previousValues: { session_date: string; session_type: string } | null = null;
     // Guard flag to avoid processing during programmatic updates
     private updatingForm = false;
+    private userId?: number;
 
     constructor(
         private fb: FormBuilder,
@@ -67,7 +68,18 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit() {
-        this.currentPatientId = this.authService.getUserID() ?? -1;
+        const userRole = this.authService.getUserRole();
+        if (userRole === 'provider') {
+            this.subscriptions.add(
+                this.providerService.getSelectedPatient().pipe(take(1)).subscribe(selectedPatient => {
+                    this.userId = selectedPatient?.id ?? -1;
+                    this.currentPatientId = selectedPatient?.id ?? -1;
+                })
+            );
+        } else {
+            this.userId = this.authService.getUserID() ?? -1;
+            this.currentPatientId = this.authService.getUserID() ?? -1;
+        }
         this.dialysisData.patchValue({patient_id: this.currentPatientId}, {emitEvent: false});
         this.updateControlsState();
         const dateCtrl = this.dialysisData.get('session_date');
@@ -89,6 +101,7 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
                 })
             );
         }
+
         this.subscriptions.add(
             this.providerService.getSelectedPatient().subscribe(patient => {
                 this.selectedPatient = patient;
@@ -135,8 +148,7 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
                     }, {emitEvent: false});
                     this.isEditing = true;
                 } else {
-                    const userId = this.authService.getUserID() ?? -1;
-                    this.dialysisData.reset({patient_id: userId, session_date, session_type}, {emitEvent: false});
+                    this.dialysisData.reset({patient_id: this.userId, session_date, session_type}, {emitEvent: false});
                     this.isEditing = false;
                 }
                 this.updateControlsState();
@@ -196,7 +208,7 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
                 .subscribe((response: any) => {
                     if (response) {
                         alert('Submission successful.');
-                        this.dialysisData.reset();
+                        this.dialysisData.reset({patient_id: this.userId});
                         this.dialysisData = new DialysisTreatmentData();
                         console.log('Logged dialysis data as patient:', response);
                     } else {
@@ -250,7 +262,7 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
             .subscribe({
                 next: response => {
                     console.log('Session deleted successfully:', response);
-                    this.dialysisData.reset();
+                    this.dialysisData.reset({patient_id: this.userId});
                 },
                 error: err => console.error('Error deleting session:', err)
             });
