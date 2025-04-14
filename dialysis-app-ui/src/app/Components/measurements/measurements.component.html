@@ -99,6 +99,7 @@
                 ></p-datePicker>
             </div>
         </div>
+        <p-confirmDialog></p-confirmDialog>
         <div class="row justify-content-center align-items-center mt-3">
             <div class="col-auto">
                 <button
@@ -116,7 +117,7 @@
                             type="button"
                             pButtonLabel="Delete"
                             class="btn btn-danger"
-                            (click)="deleteSessionData()"
+                            (click)="confirmDeleteSession()"
                     >
                         Delete
                     </button>
