@@ -25,6 +25,7 @@
                 <label for="session_date_picker" class="form-label">Select Date</label>
                 <p-datePicker id="session_date_picker"
                               formControlName="session_date"
+                              class="input-group"
                               [showIcon]="true">
                 </p-datePicker>
             </div>
@@ -97,9 +98,9 @@
     </form>
 </p-card>
 <p-confirmDialog></p-confirmDialog>
-<p-dialog [(visible)]="displayErrorDialog" header="Error" modal="true" [closable]="false" [dismissableMask]="true">
-    <p>{{ errorMessage }}</p>
+<p-dialog [(visible)]="displayDialog" header="Alert" modal="true" [closable]="false" [dismissableMask]="true">
+    <p>{{ dialogMessage }}</p>
     <div class="p-d-flex p-jc-end">
-        <button type="button" pButton label="Close" class="p-button-danger" (click)="displayErrorDialog = false"></button>
+        <button type="button" pButton label="Close" class="p-button-primary" (click)="displayDialog = false"></button>
     </div>
 </p-dialog>

@@ -1,6 +1,7 @@
 import logging
 import asyncio
 from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSocketDisconnect
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional, Set, Dict
@@ -288,11 +289,17 @@ async def delete_dialysis_session(
         user: User = Depends(get_current_user)
 ):
     """Allows a patient to delete their own dialysis session."""
+    # If user.patients is not a list, wrap it in a list.
+    patients_list = user.patients if isinstance(user.patients, list) else [user.patients]
 
-    #  Find the session and check ownership
+    allowed_condition = or_(
+        DialysisSession.patient_id == user.id,
+        DialysisSession.patient_id.in_(patients_list)
+    )
+
     session = db.query(DialysisSession).filter(
         DialysisSession.id == session_id,
-        DialysisSession.patient_id == user.id  # Ensures patient can only delete their own session
+        allowed_condition
     ).first()
 
     if not session:
@@ -301,9 +308,8 @@ async def delete_dialysis_session(
     try:
         db.delete(session)
         db.commit()
-        logger.info(f"Dialysis session {session_id} deleted successfully by patient {user.id}")
+        logger.info(f"Dialysis session {session_id} deleted successfully by user {user.id}")
         return {"message": "Dialysis session deleted successfully"}
-
     except Exception as e:
         db.rollback()
         logger.error(f"Error deleting dialysis session {session_id}: {e}")

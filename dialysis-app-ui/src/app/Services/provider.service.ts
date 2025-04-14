@@ -11,16 +11,16 @@ import {environment} from "../../environments/environment";
 export class ProviderService {
     private API_BASE_URL = environment.apiUrl + '/provider';
     // private API_BASE_URL = 'http://localhost:8004/provider';
-    private selectedPatientSubject = new BehaviorSubject<PatientTableCard | null>(null);
+    public selectedPatientSubject$ = new BehaviorSubject<PatientTableCard | null>(null);
     constructor(private http: HttpClient) {
     }
 
     getSelectedPatient(): Observable<PatientTableCard | null> {
-        return this.selectedPatientSubject.asObservable();
+        return this.selectedPatientSubject$.asObservable();
     }
 
     setSelectedPatient(patient: PatientTableCard | null): void {
-        this.selectedPatientSubject.next(patient);
+        this.selectedPatientSubject$.next(patient);
     }
 
     /**
