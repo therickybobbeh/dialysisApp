@@ -18,6 +18,7 @@ import {NgClass, NgIf} from '@angular/common';
 import {ConfirmationService} from 'primeng/api';
 import {ConfirmDialog} from 'primeng/confirmdialog';
 import {Tooltip} from 'primeng/tooltip';
+import {Dialog} from "primeng/dialog";
 
 @Component({
     selector: 'app-measurements',
@@ -37,7 +38,8 @@ import {Tooltip} from 'primeng/tooltip';
         NgClass,
         NgIf,
         ConfirmDialog,
-        Tooltip
+        Tooltip,
+        Dialog
     ]
 })
 export class MeasurementsComponent implements OnInit, OnDestroy {
@@ -55,6 +57,9 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
     private previousValues: { session_date: string; session_type: string } | null = null;
     // Guard flag to avoid processing during programmatic updates
     private updatingForm = false;
+    private userId?: number;
+    public displayDialog: boolean = false;
+    public dialogMessage: string = '';
 
     constructor(
         private fb: FormBuilder,
@@ -67,9 +72,25 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit() {
-        this.currentPatientId = this.authService.getUserID() ?? -1;
+        // Existing initialization logic
+        const userRole = this.authService.getUserRole();
+        if (userRole === 'provider') {
+            this.subscriptions.add(
+                this.providerService.selectedPatientSubject$.subscribe(selectedPatient => {
+                    this.userId = selectedPatient?.id ?? -1;
+                    this.currentPatientId = selectedPatient?.id ?? -1;
+                    this.dialysisData.reset({patient_id: this.currentPatientId});
+                    this.updateControlsState();
+                })
+            );
+        } else {
+            this.userId = this.authService.getUserID() ?? -1;
+            this.currentPatientId = this.authService.getUserID() ?? -1;
+        }
         this.dialysisData.patchValue({patient_id: this.currentPatientId}, {emitEvent: false});
         this.updateControlsState();
+
+        // Existing subscriptions for form controls
         const dateCtrl = this.dialysisData.get('session_date');
         const typeCtrl = this.dialysisData.get('session_type');
         if (dateCtrl && typeCtrl) {
@@ -89,11 +110,6 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
                 })
             );
         }
-        this.subscriptions.add(
-            this.providerService.getSelectedPatient().subscribe(patient => {
-                this.selectedPatient = patient;
-            })
-        );
     }
 
     ngOnDestroy() {
@@ -135,8 +151,7 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
                     }, {emitEvent: false});
                     this.isEditing = true;
                 } else {
-                    const userId = this.authService.getUserID() ?? -1;
-                    this.dialysisData.reset({patient_id: userId, session_date, session_type}, {emitEvent: false});
+                    this.dialysisData.reset({patient_id: this.userId, session_date, session_type}, {emitEvent: false});
                     this.isEditing = false;
                 }
                 this.updateControlsState();
@@ -195,8 +210,9 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
                 )
                 .subscribe((response: any) => {
                     if (response) {
-                        alert('Submission successful.');
-                        this.dialysisData.reset();
+                        this.dialogMessage = 'Successfully saved.';
+                        this.displayDialog = true;
+                        this.dialysisData.reset({patient_id: this.userId});
                         this.dialysisData = new DialysisTreatmentData();
                         console.log('Logged dialysis data as patient:', response);
                     } else {
@@ -213,7 +229,11 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
         if (this.selectedPatient) {
             this.providerService.logDialysisSessionForPatient(this.selectedPatient.id, updatedData)
                 .subscribe({
-                    next: response => console.log('Patient data saved successfully:', response),
+                    next: response => {
+                        console.log('Data saved successfully:', response);
+                        this.dialogMessage = 'Successfully saved.';
+                        this.displayDialog = true;
+                    },
                     error: err => {
                         console.error('Error saving patient data:', err);
                         alert('Error saving data.');
@@ -239,22 +259,28 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
     /**
      * Deletes the current session.
      */
-    deleteSessionData(): void {
-        const sessionId = this.dialysisData.value.session_id;
-        if (!sessionId) {
-            console.error('No session id available.');
-            return;
-        }
-        this.dialysisService.deleteDialysisSession(sessionId)
-            .pipe(take(1))
-            .subscribe({
-                next: response => {
-                    console.log('Session deleted successfully:', response);
-                    this.dialysisData.reset();
-                },
-                error: err => console.error('Error deleting session:', err)
-            });
+deleteSessionData(): void {
+    const sessionId = this.dialysisData.value.session_id;
+    if (!sessionId) {
+        console.error('No session id available.');
+        return;
     }
+    this.dialysisService.deleteDialysisSession(sessionId)
+        .pipe(take(1))
+        .subscribe({
+            next: response => {
+                console.log('Session deleted successfully:', response);
+                this.dialysisData.reset({ patient_id: this.userId });
+                this.dialogMessage = 'Session deleted successfully.';
+                this.displayDialog = true;
+            },
+            error: err => {
+                console.error('Error deleting session:', err);
+                this.dialogMessage = 'Error deleting session. Please try again.';
+                this.displayDialog = true;
+            }
+        });
+}
 
     /**
      * Enables or disables form controls based on whether both session_date and session_type are set.
