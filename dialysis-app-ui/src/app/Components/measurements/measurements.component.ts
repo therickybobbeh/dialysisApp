@@ -17,6 +17,7 @@ import { PatientTableCard } from '../../Models/tables';
 import { NgClass, NgIf } from '@angular/common';
 import { ConfirmationService } from 'primeng/api';
 import { ConfirmDialog } from 'primeng/confirmdialog';
+import {Tooltip} from "primeng/tooltip";
 
 @Component({
   selector: 'app-measurements',
@@ -35,7 +36,8 @@ import { ConfirmDialog } from 'primeng/confirmdialog';
     Select,
     NgClass,
     NgIf,
-    ConfirmDialog
+    ConfirmDialog,
+    Tooltip
   ]
 })
 export class MeasurementsComponent implements OnInit, OnDestroy {
@@ -49,7 +51,6 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
   private currentPatientId = -1;
   private subscriptions = new Subscription();
   private selectedPatient: PatientTableCard | null = null;
-  // This flag toggles based on whether old (saved) session data was loaded for editing.
   protected isEditing = false;
   private previousValues: { session_date: string; session_type: string } | null = null;
 
@@ -64,12 +65,9 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    // Set default current patient id and patch into the form.
     this.currentPatientId = this.authService.getUserID() ?? -1;
     this.dialysisData.patchValue({ patient_id: this.currentPatientId });
     this.updateControlsState();
-
-    // Listen for changes on session_date and session_type together.
     const sessionDateControl = this.dialysisData.get('session_date');
     const sessionTypeControl = this.dialysisData.get('session_type');
     if (sessionDateControl && sessionTypeControl) {
@@ -81,11 +79,9 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
       );
     }
 
-    // Subscribe to selected patient changes (for providers).
     this.subscriptions.add(
       this.providerService.getSelectedPatient().subscribe(patient => {
         this.selectedPatient = patient;
-        // Optionally, trigger re-fetching of data if needed when the patient changes.
       })
     );
   }
