@@ -66,21 +66,65 @@ async def log_dialysis_session(
         logger.error(f"Patient with ID {session_data.patient_id} does not exist.")
         raise HTTPException(status_code=400, detail="Invalid patient ID: Patient does not exist")
 
+    if session_data.session_id is not None:
+        existing_session = db.query(DialysisSession).filter(
+            DialysisSession.session_id == session_data.session_id,
+            DialysisSession.patient_id == session_data.patient_id
+        ).first()
+        if existing_session:
+            # Replace the data for the existing session
+            existing_session.session_type = session_data.session_type
+            existing_session.weight = session_data.weight
+            existing_session.diastolic = session_data.diastolic
+            existing_session.systolic = session_data.systolic
+            existing_session.effluent_volume = session_data.effluent_volume
+            existing_session.session_date = session_data.session_date
+            existing_session.session_duration = session_data.session_duration
+            existing_session.protein = session_data.protein
+
+            db.commit()
+            db.refresh(existing_session)
+
+            logger.info(
+                f"Dialysis session updated successfully for patient {session_data.patient_id} on {session_data.session_date}"
+            )
+            await notify_clients({"message": "Dialysis session updated", "session": existing_session})
+            return existing_session
     # Check for duplicate session type on the same day
-    existing_session = (
-        db.query(DialysisSession)
-        .filter(
-            DialysisSession.patient_id == session_data.patient_id,
-            DialysisSession.session_date >= session_data.session_date.date(),
-            DialysisSession.session_type == session_data.session_type
+    else:
+        existing_session = (
+            db.query(DialysisSession)
+            .filter(
+                DialysisSession.patient_id == session_data.patient_id,
+                DialysisSession.session_date >= session_data.session_date.date(),
+                DialysisSession.session_type == session_data.session_type
+            )
+            .first()
         )
-        .first()
-    )
     if existing_session:
-        logger.warning(
-            f"Duplicate {session_data.session_type} session detected for patient {session_data.patient_id} on {session_data.session_date}")
-        raise HTTPException(status_code=400,
-                            detail=f"{session_data.session_type.capitalize()} session already logged today")
+        # If the incoming session_data has a session_id that matches the existing session, update it.
+        if session_data.session_id is not None and existing_session.session_id == session_data.session_id:
+            existing_session.session_type = session_data.session_type
+            existing_session.weight = session_data.weight
+            existing_session.diastolic = session_data.diastolic
+            existing_session.systolic = session_data.systolic
+            existing_session.effluent_volume = session_data.effluent_volume
+            existing_session.session_date = session_data.session_date
+            existing_session.session_duration = session_data.session_duration
+            existing_session.protein = session_data.protein
+
+            db.commit()
+            db.refresh(existing_session)
+
+            logger.info(
+                f"Dialysis session updated successfully for patient {session_data.patient_id} on {session_data.session_date}")
+            await notify_clients({"message": "Dialysis session updated", "session": existing_session})
+            return existing_session
+        else:
+            logger.warning(
+                f"Duplicate {session_data.session_type} session detected for patient {session_data.patient_id} on {session_data.session_date}")
+            raise HTTPException(status_code=400,
+                                detail=f"{session_data.session_type.capitalize()} session already logged today")
 
     # Auto-generate session_id if not provided
     if session_data.session_id is None:
@@ -159,9 +203,11 @@ async def get_dialysis_sessions(
         # Query dialysis sessions for the specified patient
         query = db.query(DialysisSession).filter(DialysisSession.patient_id == patient_id)
         if start_date:
-            query = query.filter(DialysisSession.session_date >= start_date)
+            start_of_day = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            query = query.filter(DialysisSession.session_date >= start_of_day)
         if end_date:
-            query = query.filter(DialysisSession.session_date <= end_date)
+            end_of_day = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+            query = query.filter(DialysisSession.session_date <= end_of_day)
         sessions = query.all()
 
         logger.info(f"Retrieved {len(sessions)} dialysis sessions for patient {patient_id}")
@@ -170,7 +216,6 @@ async def get_dialysis_sessions(
     except Exception as e:
         logger.error(f"Error retrieving dialysis sessions: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve dialysis sessions")
-
 
 
 @router.put("/sessions/{session_id}", response_model=DialysisSessionResponse)
@@ -222,7 +267,6 @@ async def get_all_dialysis_sessions(
 ):
     """Allows a provider to view all patient dialysis sessions safely."""
 
-    # ✅ Ensure user is a provider
     if user.role != "provider":
         raise HTTPException(status_code=403, detail="Access denied")
 
@@ -264,6 +308,3 @@ async def delete_dialysis_session(
         db.rollback()
         logger.error(f"Error deleting dialysis session {session_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete dialysis session")
-
-
-

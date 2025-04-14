@@ -8,7 +8,7 @@ class DialysisSession(Base):
     id = Column(Integer, primary_key=True, index=True)
     patient_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     session_type = Column(String, nullable=False)
-    session_id = Column(Integer, nullable=False)
+    session_id: int = Column(Integer, nullable=False)
     weight = Column(Float, nullable=False)
     diastolic = Column(Integer, nullable=False)
     systolic = Column(Integer, nullable=False)
