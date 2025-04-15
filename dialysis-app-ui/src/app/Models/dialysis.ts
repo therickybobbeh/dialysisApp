@@ -6,21 +6,21 @@ export interface DialysisSessionCreate {
     diastolic: number;
     systolic: number;
     effluent_volume: number;
-    session_date: string;  // or Date
-    session_duration?: string;  // Optional field
+    session_date: string;
+    session_duration?: string;
+    protein: number;
 }
 
 //TODO: fix
 export interface DialysisSessionResponse {
-    id: number;
+    session_type: string;
+    session_id: number;
     patient_id: number;
-    pre_weight: number;
-    post_weight: number;
-    pre_systolic: number;
-    pre_diastolic: number;
-    post_systolic: number;
-    post_diastolic: number;
+    weight: number;
+    diastolic: number;
+    systolic: number;
     effluent_volume: number;
-    session_date: string;  // or ISO string
-    // add other fields if your model has them (like user relationship)
+    session_date: string;
+    session_duration?: string;
+    protein: number;
 }

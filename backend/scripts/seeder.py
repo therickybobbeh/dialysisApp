@@ -14,9 +14,9 @@ def seed_data():
     if db.query(User).count() == 0:
         print("🌱 Seeding users table...")
         users = [
-            User(name="Alice", email="alice@example.com", password=hash_password("password123"), role="patient"),
-            User(name="Bob", email="bob@example.com", password=hash_password("password456"), role="patient"),
-            User(name="Dr. Smith", email="drsmith@example.com", password=hash_password("provider123"), role="provider"),
+            {"name": "Alice", "email": "alice@example.com", "password": "password123", "role": "patient", "patients": {}},
+            {"name": "Bob", "email": "bob@example.com", "password": "password456", "role": "patient", "patients": {}},
+            {"name": "Dr. Smith", "email": "drsmith@example.com", "password": "provider123", "role": "provider", "patients": {1, 2, 6}},
         ]
         db.add_all(users)
         db.commit()
@@ -29,12 +29,14 @@ def seed_data():
             DialysisSession(
                 patient_id=1, session_type="pre", session_id=1, weight=65.2,
                 diastolic=80, systolic=120, effluent_volume=2.0,
-                session_date=datetime.utcnow() - timedelta(days=2), session_duration="3 hours"
+                session_date=datetime.utcnow() - timedelta(days=2), session_duration="3 hours",
+                protein=12
             ),
             DialysisSession(
                 patient_id=2, session_type="post", session_id=2, weight=78.1,
                 diastolic=85, systolic=130, effluent_volume=1.8,
-                session_date=datetime.utcnow() - timedelta(days=1), session_duration="3.5 hours"
+                session_date=datetime.utcnow() - timedelta(days=1), session_duration="3.5 hours",
+                protein=15
             ),
         ]
         db.add_all(dialysis_sessions)

@@ -22,3 +22,14 @@ class Token(BaseModel):
 class LoginData(BaseModel):
     email: str
     password: str
+
+class ProviderPatientsResponse(BaseModel):
+    id: int
+    name: str
+    email: EmailStr
+    role: str
+    patients: list[int]
+    #
+    model_config = {
+        "from_attributes": True
+    }

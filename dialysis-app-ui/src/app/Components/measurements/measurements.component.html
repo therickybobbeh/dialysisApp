@@ -1,52 +1,106 @@
-<div class="card">
-    <h2>{{measurementsTitle}}</h2>
-    <form *ngIf="selection === 'pre'" [formGroup]="preDialysisData">
-        <div class="p-fluid">
-            <div class="p-field">
-                <label for="preDialysisWeight">Pre-Dialysis Weight</label>
-                <input id="preDialysisWeight" type="number" pInputText formControlName="preDialysisWeight" />
-            </div>
-            <div class="p-field">
-                <label for="effluentVolume">Effluent Volume</label>
-                <input id="effluentVolume" type="number" pInputText formControlName="effluentVolume" />
-            </div>
-            <div class="p-field">
-                <label for="sessionDuration">Session Duration</label>
-                <input id="sessionDuration" type="number" pInputText formControlName="sessionDuration" />
-            </div>
-            <div class="p-field">
-                <label for="dailyProteinIntake">Daily Protein Intake</label>
-                <input id="dailyProteinIntake" type="number" pInputText formControlName="dailyProteinIntake" />
-            </div>
-            <div class="p-field">
-                <label for="bloodPressureBefore">Blood Pressure Before</label>
-                <input id="bloodPressureBefore" type="number" pInputText formControlName="bloodPressureBefore" />
+<p-card class="mb-4">
+    <ng-template pTemplate="header">
+        <div class="row p-3">
+            <div class="col-12 d-flex justify-content-between align-items-center">
+                <h3 class="text-primary mb-0">
+                    <i class="pi pi-database mr-2"></i> Dialysis Data
+                </h3>
+                <span class="badge mr-3 mt-3"
+                      [ngClass]="{'bg-danger': isEditing, 'bg-primary': !isEditing}">
+                        {{ isEditing ? 'Editing Saved Data' : 'New' }}
+                </span>
             </div>
         </div>
-    </form>
-
-    <form *ngIf="selection === 'post'" [formGroup]="postDialysisData">
-        <div class="p-fluid">
-            <div class="p-field">
-                <label for="preDialysisWeight">Pre-Dialysis Weight</label>
-                <input id="preDialysisWeight" type="number" pInputText formControlName="preDialysisWeight" />
-            </div>
-            <div class="p-field">
-                <label for="postDialysisWeight">Post-Dialysis Weight</label>
-                <input id="postDialysisWeight" type="number" pInputText formControlName="postDialysisWeight" />
-            </div>
-            <div class="p-field">
-                <label for="effluentVolume">Effluent Volume</label>
-                <input id="effluentVolume" type="number" pInputText formControlName="effluentVolume" />
-            </div>
-            <div class="p-field">
-                <label for="sessionDuration">Session Duration</label>
-                <input id="sessionDuration" type="number" pInputText formControlName="sessionDuration" />
-            </div>
-            <div class="p-field">
-                <label for="bloodPressureAfter">Blood Pressure After</label>
-                <input id="bloodPressureAfter" type="number" pInputText formControlName="bloodPressureAfter" />
+        <div class="row p-3">
+            <div class="col-12">
+                <h6 class="text-muted mb-0">
+                    <i class="pi pi-calendar mr-2"></i> Select Date and Session Type to Pull Old Records
+                </h6>
             </div>
         </div>
+    </ng-template>
+    <form [formGroup]="dialysisData" (ngSubmit)="saveData()" class="p-fluid">
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label for="session_date_picker" class="form-label">Select Date</label>
+                <p-datePicker id="session_date_picker"
+                              formControlName="session_date"
+                              class="input-group"
+                              [showIcon]="true">
+                </p-datePicker>
+            </div>
+            <div class="col-md-6">
+                <label for="session_type" class="form-label">Session Type</label>
+                <p-select id="session_type"
+                          [options]="sessionTypes"
+                          optionLabel="label"
+                          optionValue="value"
+                          formControlName="session_type"
+                          class="w-100">
+                </p-select>
+            </div>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label for="protein" class="form-label">Protein</label>
+                <input id="protein" type="number" pInputText formControlName="protein" class="form-control"/>
+            </div>
+            <div class="col-md-6">
+                <label for="weight" class="form-label">Weight</label>
+                <input id="weight" type="number" pInputText formControlName="weight" class="form-control"/>
+            </div>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label for="diastolic" class="form-label">Diastolic</label>
+                <input id="diastolic" type="number" pInputText formControlName="diastolic" class="form-control"/>
+            </div>
+            <div class="col-md-6">
+                <label for="systolic" class="form-label">Systolic</label>
+                <input id="systolic" type="number" pInputText formControlName="systolic" class="form-control"/>
+            </div>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label for="effluent_volume" class="form-label">Effluent Volume</label>
+                <input id="effluent_volume" type="number" pInputText formControlName="effluent_volume"
+                       class="form-control"/>
+            </div>
+            <div class="col-md-6">
+                <label for="session_duration" class="form-label">Session Duration</label>
+                <p-datePicker id="session_duration"
+                              formControlName="session_duration"
+                              timeOnly="true"
+                              showIcon="true">
+                </p-datePicker>
+            </div>
+        </div>
+        <div class="row justify-content-center align-items-center mt-3">
+            <div class="col-auto">
+                <button type="submit"
+                        pButtonLabel="Submit"
+                        class="btn btn-primary"
+                        [disabled]="dialysisData.invalid">
+                    Submit
+                </button>
+            </div>
+            <ng-container *ngIf="isEditing">
+                <div class="col-auto">
+                    <button type="button"
+                            pButtonLabel="Delete"
+                            class="btn btn-danger"
+                            (click)="confirmDeleteSession()">
+                        Delete
+                    </button>
+                </div>
+            </ng-container>
+        </div>
     </form>
-</div>
+</p-card>
+<p-confirmDialog></p-confirmDialog>
+<p-dialog [(visible)]="displayDialog" header="Alert" modal="true" [closable]="false" [dismissableMask]="true">
+    <p>{{ dialogMessage }}</p>
+    <div class="p-d-flex p-jc-end">
+        <button type="button" pButton label="Close" class="p-button-primary" (click)="displayDialog = false"></button>
+    </div>
+</p-dialog>
