@@ -14,9 +14,9 @@ def seed_data():
     if db.query(User).count() == 0:
         print("🌱 Seeding users table...")
         users = [
-            User(name="Alice", email="alice@example.com", password=hash_password("password123"), role="patient"),
-            User(name="Bob", email="bob@example.com", password=hash_password("password456"), role="patient"),
-            User(name="Dr. Smith", email="drsmith@example.com", password=hash_password("provider123"), role="provider"),
+            {"name": "Alice", "email": "alice@example.com", "password": "password123", "role": "patient", "patients": {}},
+            {"name": "Bob", "email": "bob@example.com", "password": "password456", "role": "patient", "patients": {}},
+            {"name": "Dr. Smith", "email": "drsmith@example.com", "password": "provider123", "role": "provider", "patients": {1, 2, 6}},
         ]
         db.add_all(users)
         db.commit()
