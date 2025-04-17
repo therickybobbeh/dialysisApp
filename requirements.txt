@@ -9,3 +9,5 @@ locust==2.15.1
 argon2-cffi>=21.3.0  #  Replaced bcrypt with Argon2
 psycopg2-binary>=2.9.9  # PostgreSQL database driver
 alembic==1.10.3 # for data migrations
+fhir.resources==8.0.0 # for easier fhir resource construction and validation
+httpx==0.28.1 # for async RESTful client actions
