@@ -31,10 +31,37 @@ db: Session = SessionLocal()
 # Step 1: Create Test Users
 # ---------------------------
 users = [
-    {"name": "Alice", "email": "alice@example.com", "password": "password123", "role": "patient", "patients": {}},
-    {"name": "Bob", "email": "bob@example.com", "password": "password123", "role": "patient", "patients": {}},
+    {"name": "Alice", "email": "alice@example.com", "password": "password123", "role": "patient", "patients": {},
+     "notifications": {
+         "lowBloodPressure": False,
+         "highBloodPressure": True,
+         "dialysisGrowthAdjustment": False,
+         "fluidOverloadHigh": True,
+         "fluidOverloadWatch": False,
+         "effluentVolume": True,
+         "protein": True
+     }},
+    {"name": "Bob", "email": "bob@example.com", "password": "password123", "role": "patient", "patients": {},
+     "notifications": {
+         "lowBloodPressure": True,
+         "highBloodPressure": False,
+         "dialysisGrowthAdjustment": True,
+         "fluidOverloadHigh": False,
+         "fluidOverloadWatch": True,
+         "effluentVolume": False,
+         "protein": True
+     }},
     # For a provider, assume `patients` is a set of patient IDs.
-    {"name": "Dr. Smith", "email": "drsmith@example.com", "password": "password123", "role": "provider", "patients": {1, 2, 6}},
+    {"name": "Dr. Smith", "email": "drsmith@example.com", "password": "password123", "role": "provider",
+     "patients": {1, 2, 6}, "notifications": {
+         "lowBloodPressure": True,
+         "highBloodPressure": True,
+         "dialysisGrowthAdjustment": False,
+         "fluidOverloadHigh": True,
+         "fluidOverloadWatch": True,
+         "effluentVolume": False,
+         "protein": False
+     }},
 ]
 
 for user in users:
@@ -92,7 +119,8 @@ else:
             ).first()
 
             if existing:
-                logger.info(f"Session for patient {patient.id} on {session_date.date()} ({session_type}) already exists. Skipping this attempt.")
+                logger.info(
+                    f"Session for patient {patient.id} on {session_date.date()} ({session_type}) already exists. Skipping this attempt.")
                 continue
 
             new_session = DialysisSession(
@@ -120,7 +148,8 @@ else:
 
     # Optional: Reset the sequence so that the next generated id is higher than the current max.
     try:
-        db.execute(text("SELECT setval('dialysis_sessions_id_seq', COALESCE((SELECT MAX(id) FROM dialysis_sessions), 0))"))
+        db.execute(
+            text("SELECT setval('dialysis_sessions_id_seq', COALESCE((SELECT MAX(id) FROM dialysis_sessions), 0))"))
         db.commit()
         logger.info("Dialysis sessions sequence reset successfully.")
     except Exception as e:

@@ -14,9 +14,54 @@ def seed_data():
     if db.query(User).count() == 0:
         print("🌱 Seeding users table...")
         users = [
-            {"name": "Alice", "email": "alice@example.com", "password": "password123", "role": "patient", "patients": {}},
-            {"name": "Bob", "email": "bob@example.com", "password": "password456", "role": "patient", "patients": {}},
-            {"name": "Dr. Smith", "email": "drsmith@example.com", "password": "provider123", "role": "provider", "patients": {1, 2, 6}},
+            {
+                "name": "Alice",
+                "email": "alice@example.com",
+                "password": "password123",
+                "role": "patient",
+                "patients": {},
+                "notifications": {
+                    "lowBloodPressure": False,
+                    "highBloodPressure": True,
+                    "dialysisGrowthAdjustment": False,
+                    "fluidOverloadHigh": True,
+                    "fluidOverloadWatch": False,
+                    "effluentVolume": True,
+                    "protein": True
+                }
+            },
+            {
+                "name": "Bob",
+                "email": "bob@example.com",
+                "password": "password456",
+                "role": "patient",
+                "patients": {},
+                "notifications": {
+                    "lowBloodPressure": True,
+                    "highBloodPressure": False,
+                    "dialysisGrowthAdjustment": True,
+                    "fluidOverloadHigh": False,
+                    "fluidOverloadWatch": True,
+                    "effluentVolume": False,
+                    "protein": True
+                }
+            },
+            {
+                "name": "Dr. Smith",
+                "email": "drsmith@example.com",
+                "password": "provider123",
+                "role": "provider",
+                "patients": {1, 2, 6},
+                "notifications": {
+                    "lowBloodPressure": True,
+                    "highBloodPressure": True,
+                    "dialysisGrowthAdjustment": False,
+                    "fluidOverloadHigh": True,
+                    "fluidOverloadWatch": True,
+                    "effluentVolume": False,
+                    "protein": False
+                }
+            },
         ]
         db.add_all(users)
         db.commit()

@@ -1,57 +1,72 @@
-import { Component } from '@angular/core';
-import {DropdownModule} from "primeng/dropdown";
-import {DatePipe, NgClass, NgForOf} from "@angular/common";
-import {FormsModule} from "@angular/forms";
-import {Select} from "primeng/select";
+import { Component, OnInit } from '@angular/core';
+import { NgClass, NgForOf } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { DropdownModule } from 'primeng/dropdown';
+import { DatePipe } from '@angular/common';
+
+import {
+  mapBackendDataToPatientAlerts,
+  PatientAlertsBackend,
+  AlertType
+} from '../../Models/notifications';
+import { NotificationsService } from '../../Services/notifications.service';
+
+interface NotificationItem {
+  message: string;
+  type: AlertType;
+  timestamp?: Date;
+}
 
 @Component({
   selector: 'app-notifications',
-  imports: [
-    DropdownModule,
-    NgClass,
-    FormsModule,
-    NgForOf,
-    DatePipe,
-    Select
-  ],
   templateUrl: './notifications.component.html',
-  styleUrl: './notifications.component.scss'
+  styleUrls: ['./notifications.component.scss'],
+  imports: [NgClass, NgForOf, FormsModule, DropdownModule, DatePipe],
 })
-export class NotificationsComponent {
+export class NotificationsComponent implements OnInit {
   notificationTypes = [
-    { label: 'All', value: null },
-    { label: 'Info', value: 'info' },
-    { label: 'Success', value: 'success' },
-    { label: 'Warning', value: 'warning' },
-    { label: 'Error', value: 'error' },
+    { label: 'All',         value: 'all'         },
+    { label: 'Critical',    value: 'critical'    },
+    { label: 'Monitor',     value: 'monitor'     },
+    { label: 'Information', value: 'information' },
   ];
 
-  selectedType: string | null = null;
+  selectedType: string = 'all';
+  originalNotifications: NotificationItem[] = [];
 
-  notifications = [
-    {
-      message: 'Session successfully submitted.',
-      type: 'success',
-      timestamp: new Date('2025-04-02T10:15:00')
-    },
-    {
-      message: 'Effluent volume unusually low.',
-      type: 'warning',
-      timestamp: new Date('2025-04-01T17:30:00')
-    },
-    {
-      message: 'Missing systolic data.',
-      type: 'error',
-      timestamp: new Date('2025-03-30T08:45:00')
-    },
-    {
-      message: 'New guideline available.',
-      type: 'info',
-      timestamp: new Date('2025-03-28T14:00:00')
+  constructor(private notificationsService: NotificationsService) {}
+
+  ngOnInit(): void {
+    this.loadNotifications();
+  }
+
+  private loadNotifications(): void {
+    // getNotifications returns an Observable<PatientAlertsBackend>
+    this.notificationsService.getNotifications().then(obs => {
+      obs.subscribe({
+        next: (data: PatientAlertsBackend) => {
+          this.originalNotifications = this.mapNotifications(data);
+        },
+        error: err => console.error('Error fetching notifications:', err)
+      });
+    });
+  }
+
+  private mapNotifications(data: PatientAlertsBackend): NotificationItem[] {
+    const frontend = mapBackendDataToPatientAlerts(data);
+    return (Object.keys(frontend) as Array<keyof typeof frontend>)
+      .map(key => ({
+        message: frontend[key].message,
+        type: frontend[key].type,
+        timestamp: new Date() //TODO: when we add dates to the db
+      }))
+      .filter(n => n.type !== null) as NotificationItem[];
+  }
+
+  filteredNotifications(): NotificationItem[] {
+    if (this.selectedType === 'all') {
+      return this.originalNotifications;
     }
-  ];
-  filteredNotifications() {
-    if (!this.selectedType) return this.notifications;
-    return this.notifications.filter(n => n.type === this.selectedType);
+    return this.originalNotifications.filter(n => n.type === this.selectedType);
   }
 }

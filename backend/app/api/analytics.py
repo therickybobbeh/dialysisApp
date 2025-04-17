@@ -14,21 +14,22 @@ from app.db.schemas.analytics import DialysisAnalyticsResponse
 logger = logging.getLogger(__name__)
 
 #  Fix Prefix to Avoid Route Conflicts
-router = APIRouter(prefix="/dialysis", tags=["Dialysis Analytics"])
+router = APIRouter(prefix="/analytics", tags=["Dialysis Analytics"])
+
 
 # todo: we need to map the pre and post sessions. the db changed a bit
 @router.get("/analytics")
 def dialysis_analytics(
-    start_date: Optional[datetime] = None,
-    end_date: Optional[datetime] = None,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user)
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        db: Session = Depends(get_db),
+        user: User = Depends(get_current_user)
 ) -> List[Dict]:
     """Returns aggregated dialysis data trends with risk alerts for the logged-in patient"""
 
     try:
         #  Aggregate patient dialysis trends
-        #TODO: Fix this query to get the 2 sessions, combine and then calculate the averages
+        # TODO: Fix this query to get the 2 sessions, combine and then calculate the averages
         # can use the pre and post fields
         query = None;
         # query = db.query(
@@ -59,10 +60,10 @@ def dialysis_analytics(
             #  **Risk Conditions**
             if row.avg_pre_systolic > 140 or row.avg_post_systolic > 140:
                 alert_messages.append("High blood pressure detected. Contact provider.")
-            
+
             if row.avg_post_weight - row.avg_pre_weight > 2.0:
                 alert_messages.append("Significant weight increase detected. Monitor fluid retention.")
-            
+
             if row.avg_effluent < 1.5:
                 alert_messages.append("Low effluent volume. May indicate insufficient dialysis.")
 
@@ -83,3 +84,65 @@ def dialysis_analytics(
     except Exception as e:
         logger.error(f"Error retrieving dialysis analytics: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve analytics")
+
+
+@router.get("/notifications")
+def get_user_notifications(
+    user_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+) -> Dict:
+    """Retrieve notifications for the logged-in user or a specific user if the role is provider."""
+    try:
+        if user.role == "patient":
+            target_user_id = user.id
+        elif user.role == "provider":
+            if not user_id:
+                raise HTTPException(status_code=400, detail="User ID is required for providers")
+            target_user_id = user_id
+        else:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        # Query the target user's notifications
+        target_user = db.query(User).filter(User.id == target_user_id).first()
+        if not target_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        notifications = target_user.notifications or {}
+        return notifications
+
+    except Exception as e:
+        logger.error(f"Error retrieving notifications: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve notifications")
+
+
+@router.put("/notifications")
+def update_user_notifications(
+    notifications: Dict,
+    user_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+) -> Dict:
+    """Update notifications for the logged-in user or a specific user if the role is provider."""
+    try:
+        if user.role == "patient":
+            target_user_id = user.id
+        elif user.role == "provider":
+            if not user_id:
+                raise HTTPException(status_code=400, detail="User ID is required for providers")
+            target_user_id = user_id
+        else:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        # Query the target user
+        target_user = db.query(User).filter(User.id == target_user_id).first()
+        if not target_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Update the notifications field
+        target_user.notifications = notifications
+        db.commit()
+        return {"message": "Notifications updated successfully"}
+
+    except Exception as e:
+        logger.error(f"Error updating notifications: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update notifications")
