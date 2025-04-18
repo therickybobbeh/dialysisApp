@@ -10,6 +10,16 @@ def insert_single_user(db: Session):
         email='alice@example.com',
         password='password123',
         role='admin',
+        patients={},
+        notifications={
+            "lowBloodPressure": False,
+            "highBloodPressure": True,
+            "dialysisGrowthAdjustment": False,
+            "fluidOverloadHigh": True,
+            "fluidOverloadWatch": False,
+            "effluentVolume": True,
+            "protein": True
+        },
         sex='female',
         height=165.5
     )
@@ -20,8 +30,8 @@ def insert_single_user(db: Session):
 # Example: Insert multiple rows
 def insert_multiple_users(db: Session):
     users = [
-        User(id=2, name='Bob', email='bob@example.com', password='password456', role='user', sex='male', height=180.2),
-        User(id=3, name='Carol', email='carol@example.com', password='password789', role='user', sex='female', height=170.0),
+        User(id=2, name='Bob', email='bob@example.com', password='password123', role='user', sex='male', height=180.2),
+        User(id=3, name='Carol', email='carol@example.com', password='password123', role='user', sex='female', height=170.0),
     ]
     db.add_all(users)
     db.commit()
