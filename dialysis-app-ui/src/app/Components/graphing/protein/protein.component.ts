@@ -78,7 +78,7 @@ export class ProteinComponent implements OnInit, OnDestroy {
 
     this.chartOptions = {
       responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: true,
       plugins: {
         legend: { position: 'top' },
         title: {

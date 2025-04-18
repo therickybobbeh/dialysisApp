@@ -2,7 +2,6 @@ import {Component, Input, OnDestroy, OnInit} from '@angular/core';
 import {FormBuilder, ReactiveFormsModule} from '@angular/forms';
 import {DialysisService} from '../../Services/dialysis.service';
 import {AuthService} from '../../Services/authentication.service';
-import {DialysisSessionResponse} from '../../Models/dialysis';
 import {catchError, combineLatest, debounceTime, distinctUntilChanged, of, Subscription, take, map} from 'rxjs';
 import {Calendar} from 'primeng/calendar';
 import {DropdownModule} from 'primeng/dropdown';
@@ -58,8 +57,8 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
     // Guard flag to avoid processing during programmatic updates
     private updatingForm = false;
     private userId?: number;
-    public displayDialog: boolean = false;
-    public dialogMessage: string = '';
+    public displayDialog = false;
+    public dialogMessage = '';
 
     constructor(
         private fb: FormBuilder,
