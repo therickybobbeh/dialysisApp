@@ -88,7 +88,6 @@ CREATE TABLE public.dialysis_sessions (
     session_duration varchar,
     protein double precision NOT NULL
 );
-
 CREATE SEQUENCE public.dialysis_sessions_id_seq
     AS integer
     START WITH 1
@@ -118,15 +117,16 @@ CREATE SEQUENCE public.food_intake_id_seq
 ALTER SEQUENCE public.food_intake_id_seq OWNED BY public.food_intake.id;
 
 CREATE TABLE public.users (
-    id integer NOT NULL,
-    name character varying NOT NULL,
-    email character varying NOT NULL,
-    password character varying NOT NULL,
-    role character varying NOT NULL,
-    notifications jsonb DEFAULT '{}'::jsonb,
-    patients integer[] DEFAULT '{}'
-);
-
+        id integer NOT NULL,
+        name character varying NOT NULL,
+        email character varying NOT NULL,
+        password character varying NOT NULL,
+        role character varying NOT NULL,
+        notifications jsonb DEFAULT '{}'::jsonb,
+        patients integer[] DEFAULT '{}',
+        sex character varying NOT NULL,
+        height double precision NOT NULL
+    );
 CREATE SEQUENCE public.users_id_seq
     AS integer
     START WITH 1
@@ -195,12 +195,14 @@ COPY public.users (
     password,
     role,
     notifications,
-    patients
+    patients,
+    sex,
+    height
 ) FROM stdin WITH (FORMAT csv);
-"2","Bob","bob@example.com","$argon2id$v=19$m=65536,t=3,p=4$qWDGK0tIndImSNcRfESAgQ$xnMU1+7MJ2/eBTYmAFfCDQRS5nBGFqagJ1ncU/jkkDg","patient","{}","{}"
-"6","John Doe","johndoe@example.com","$argon2id$v=19$m=65536,t=3,p=4$/Qv9SwqQctTzoWSML1oV7Q$/fZnPd4p0yxpIuy29apYN+4LTgX8/TWKK03yMqriqYI","patient","{}","{}"
-"1","Alice","alice@example.com","$argon2id$v=19$m=65536,t=3,p=4$g7CzL0siiYqy0UdLlzLsuQ$mM/wGHFIq83Gm/bteVs/BSOJ2VOLFIP/xBVwCfv4quw","patient","{}","{}"
-"3","Dr. Smith","drsmith@example.com","$argon2id$v=19$m=65536,t=3,p=4$3e4wRbupvqcfUHLEGDEcMQ$Ru4hTyEcVho3WsYK7UHZ7p6QUQBdwoAC3eI04L/RYpw","provider","{}","{1,2,6}"
+"2","Bob","bob@example.com","$argon2id$v=19$m=65536,t=3,p=4$qWDGK0tIndImSNcRfESAgQ$xnMU1+7MJ2/eBTYmAFfCDQRS5nBGFqagJ1ncU/jkkDg","patient","{}","{}","male","180.2"
+"6","John Doe","johndoe@example.com","$argon2id$v=19$m=65536,t=3,p=4$/Qv9SwqQctTzoWSML1oV7Q$/fZnPd4p0yxpIuy29apYN+4LTgX8/TWKK03yMqriqYI","patient","{}","{}","male","175.0"
+"1","Alice","alice@example.com","$argon2id$v=19$m=65536,t=3,p=4$g7CzL0siiYqy0UdLlzLsuQ$mM/wGHFIq83Gm/bteVs/BSOJ2VOLFIP/xBVwCfv4quw","patient","{}","{}","female","165.5"
+"3","Dr. Smith","drsmith@example.com","$argon2id$v=19$m=65536,t=3,p=4$3e4wRbupvqcfUHLEGDEcMQ$Ru4hTyEcVho3WsYK7UHZ7p6QUQBdwoAC3eI04L/RYpw","provider","{}","{1,2,6}","male","175.0"
 \.
 
 -- ========================================================

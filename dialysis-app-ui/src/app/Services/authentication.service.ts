@@ -1,7 +1,9 @@
 import {Injectable} from '@angular/core';
 import {HttpClient, HttpParams} from '@angular/common/http';
 import {Router} from '@angular/router';
-import { environment} from "../../environments/environment";
+import {environment} from "../../environments/environment";
+import {UserCreate, UserResponse} from "../Models/users";
+import {lastValueFrom} from "rxjs";
 
 @Injectable({providedIn: 'root'})
 export class AuthService {
@@ -11,6 +13,18 @@ export class AuthService {
     // private apiBaseUrl =  process.env['API_BASE_URL'] || 'http://localhost:8004/provider';
 
     constructor(private http: HttpClient, private router: Router) {
+    }
+
+    async register(user: UserCreate): Promise<UserResponse> {
+        try {
+            const response = await lastValueFrom(
+                this.http.post<UserResponse>(`${this.apiBaseUrl}/auth/register`, user)
+            );
+            return response;
+        } catch (error) {
+            console.error('Registration failed:', error);
+            throw error;
+        }
     }
 
     /** Login: obtains token and user info. */
@@ -95,8 +109,8 @@ export class AuthService {
         return localStorage.getItem('user_role') || 'guest';
     }
 
-    getUserID(): number| null {
-        const userId  = localStorage.getItem('user_id');
+    getUserID(): number | null {
+        const userId = localStorage.getItem('user_id');
         return userId ? Number(userId) : null;
     }
 
@@ -116,4 +130,6 @@ export class AuthService {
         if (!decoded || !decoded.exp) return true;
         return decoded.exp * 1000 < Date.now();
     }
+
+
 }

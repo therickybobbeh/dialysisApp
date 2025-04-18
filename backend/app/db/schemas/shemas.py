@@ -1,4 +1,6 @@
 # schemas/user.py
+from typing import Optional, List
+
 from pydantic import BaseModel, EmailStr
 
 class UserCreate(BaseModel):
@@ -6,6 +8,10 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     role: str
+    notifications: Optional[dict] = {}
+    patients: Optional[List[int]] = []
+    sex: str
+    height: float
 
 class UserResponse(BaseModel):
     id: int

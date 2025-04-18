@@ -1,31 +1,33 @@
-import psycopg2
-
-conn = psycopg2.connect(
-    dbname="pd_management",
-    user="postgres",
-    password="admin",
-    host="localhost",
-    port=5432
-)
-
-cur = conn.cursor()
+from sqlalchemy.orm import Session
+from app.db.models.user import User
+from app.db.session import get_db
 
 # Example: Insert a single row
-cur.execute("""
-    INSERT INTO users (id, name, email, password, role)
-    VALUES (%s, %s, %s, %s, %s)
-""", (1, 'Alice', 'alice@example.com', 'password123', 'admin'))
+def insert_single_user(db: Session):
+    user = User(
+        id=1,
+        name='Alice',
+        email='alice@example.com',
+        password='password123',
+        role='admin',
+        sex='female',
+        height=165.5
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
 
 # Example: Insert multiple rows
-users = [
-    (2, 'Bob', 'bob@example.com', 'password456', 'user'),
-    (3, 'Carol', 'carol@example.com', 'password789', 'user'),
-]
-cur.executemany("""
-    INSERT INTO users (id, name, email, password, role)
-    VALUES (%s, %s, %s, %s, %s)
-""", users)
+def insert_multiple_users(db: Session):
+    users = [
+        User(id=2, name='Bob', email='bob@example.com', password='password456', role='user', sex='male', height=180.2),
+        User(id=3, name='Carol', email='carol@example.com', password='password789', role='user', sex='female', height=170.0),
+    ]
+    db.add_all(users)
+    db.commit()
 
-conn.commit()
-cur.close()
-conn.close()
+# Usage
+if __name__ == "__main__":
+    db = next(get_db())  # Assuming `get_db` is a generator function
+    insert_single_user(db)
+    insert_multiple_users(db)

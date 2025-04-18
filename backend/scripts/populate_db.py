@@ -32,6 +32,7 @@ db: Session = SessionLocal()
 # ---------------------------
 users = [
     {"name": "Alice", "email": "alice@example.com", "password": "password123", "role": "patient", "patients": {},
+     "sex": "female", "height": 165.5,
      "notifications": {
          "lowBloodPressure": False,
          "highBloodPressure": True,
@@ -42,6 +43,7 @@ users = [
          "protein": True
      }},
     {"name": "Bob", "email": "bob@example.com", "password": "password123", "role": "patient", "patients": {},
+     "sex": "male", "height": 180.2,
      "notifications": {
          "lowBloodPressure": True,
          "highBloodPressure": False,
@@ -53,7 +55,8 @@ users = [
      }},
     # For a provider, assume `patients` is a set of patient IDs.
     {"name": "Dr. Smith", "email": "drsmith@example.com", "password": "password123", "role": "provider",
-     "patients": {1, 2, 6}, "notifications": {
+     "patients": {1, 2, 6}, "sex": "male", "height": 175.0,
+     "notifications": {
          "lowBloodPressure": True,
          "highBloodPressure": True,
          "dialysisGrowthAdjustment": False,
@@ -75,16 +78,29 @@ for user in users:
         name=user["name"],
         email=user["email"],
         password=hashed_password,
-        role=user["role"]
+        role=user["role"],
+        sex=user["sex"],
+        height=user["height"]
     )
     db.add(db_user)
 
 try:
     db.commit()
     logger.info("Sample users added successfully!")
+
+    # Reset the sequence for users_id_seq
+    db.execute(
+        text("SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1) + 1, false);")
+    )
+    db.commit()
+    logger.info("Users sequence reset successfully.")
 except IntegrityError as e:
     db.rollback()
     logger.error("Error inserting sample users:")
+    logger.error(e)
+except Exception as e:
+    db.rollback()
+    logger.error("Failed to reset users_id_seq sequence:")
     logger.error(e)
 
 # ---------------------------------------

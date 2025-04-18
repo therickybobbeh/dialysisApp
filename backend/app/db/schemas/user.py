@@ -1,10 +1,17 @@
 from pydantic import BaseModel, EmailStr
 
+from pydantic import BaseModel, EmailStr
+from typing import List, Optional
+
 class UserCreate(BaseModel):
     name: str
     email: EmailStr
     password: str
     role: str
+    notifications: Optional[dict] = {}
+    patients: Optional[List[int]] = []
+    sex: str
+    height: float  
 
 class UserResponse(BaseModel):
     id: int

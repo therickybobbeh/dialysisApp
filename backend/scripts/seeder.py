@@ -1,5 +1,6 @@
 import os
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import text
 from app.db.session import get_db
 from app.db.models.user import User
 from app.db.models.dialysis import DialysisSession
@@ -17,9 +18,11 @@ def seed_data():
             {
                 "name": "Alice",
                 "email": "alice@example.com",
-                "password": "password123",
+                "password": hash_password("password123"),  # Hash the password
                 "role": "patient",
                 "patients": {},
+                "sex": "female",
+                "height": 165.5,
                 "notifications": {
                     "lowBloodPressure": False,
                     "highBloodPressure": True,
@@ -33,9 +36,11 @@ def seed_data():
             {
                 "name": "Bob",
                 "email": "bob@example.com",
-                "password": "password456",
+                "password": hash_password("password456"),  # Hash the password
                 "role": "patient",
                 "patients": {},
+                "sex": "male",
+                "height": 180.2,
                 "notifications": {
                     "lowBloodPressure": True,
                     "highBloodPressure": False,
@@ -49,9 +54,11 @@ def seed_data():
             {
                 "name": "Dr. Smith",
                 "email": "drsmith@example.com",
-                "password": "provider123",
+                "password": hash_password("provider123"),  # Hash the password
                 "role": "provider",
                 "patients": {1, 2, 6},
+                "sex": "male",
+                "height": 175.0,
                 "notifications": {
                     "lowBloodPressure": True,
                     "highBloodPressure": True,
@@ -66,6 +73,11 @@ def seed_data():
         db.add_all(users)
         db.commit()
         print(" Users seeded successfully.")
+
+        # Reset the sequence for users_id_seq
+        db.execute(text("SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1), false);"))
+        db.commit()
+        print(" Sequence users_id_seq reset successfully.")
 
     # Ensure Dialysis Sessions Are Seeded
     if db.query(DialysisSession).count() == 0:
@@ -87,6 +99,11 @@ def seed_data():
         db.add_all(dialysis_sessions)
         db.commit()
         print(" Dialysis sessions seeded successfully.")
+
+        # Reset the sequence for dialysis_sessions_id_seq
+        db.execute(text("SELECT setval('dialysis_sessions_id_seq', COALESCE((SELECT MAX(id) FROM dialysis_sessions), 1), false);"))
+        db.commit()
+        print(" Sequence dialysis_sessions_id_seq reset successfully.")
 
     # Ensure Food Intake Data Is Seeded
     if db.query(FoodIntake).count() == 0:
