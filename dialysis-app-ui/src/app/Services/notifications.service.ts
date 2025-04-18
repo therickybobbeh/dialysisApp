@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
 import {HttpClient, HttpHeaders} from '@angular/common/http';
-import {Observable, firstValueFrom} from 'rxjs';
+import {Observable, switchMap} from 'rxjs';
 import {environment} from "../../environments/environment";
 import {AuthService} from './authentication.service';
 import {ProviderService} from './provider.service';
@@ -20,26 +20,31 @@ export class NotificationsService {
     }
 
     /** Fetch notifications for the logged-in user or the selected user if the role is provider */
-    async getNotifications(): Promise<Observable<any>> {
+    getNotifications(): Observable<any> {
         const token = localStorage.getItem('token');
         const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-        let userId: number | undefined;
 
         if (this.authService.getUserRole() === 'provider') {
-            // Get the currently selected user from the ProviderService
-            const selectedPatient = await firstValueFrom(this.providerService.getSelectedPatient());
-            if (selectedPatient) {
-                userId = selectedPatient.id;
-            }
+            return this.providerService.getSelectedPatient().pipe(
+                switchMap(selectedPatient => {
+                    if (!selectedPatient) {
+                        // Return an empty observable or handle the case where no patient is selected
+                        return new Observable(observer => {
+                            observer.error('No user selected or logged in. Please select a user to fetch notifications.');
+                        });
+                    }
+                    const url = `${this.apiBaseUrl}/notifications?user_id=${selectedPatient.id}`;
+                    return this.http.get(url, {headers});
+                })
+            );
         } else {
-            // may want to do something else here
-            userId = this.authService.getUserID() ?? undefined;
+            const userId = this.authService.getUserID();
+            if (!userId) {
+                throw new Error('No user selected or logged in. Please select a user to fetch notifications.');
+            }
+            const url = `${this.apiBaseUrl}/notifications?user_id=${userId}`;
+            return this.http.get(url, {headers});
         }
-        if (!userId) {
-            throw new Error('No user selected or logged in. Please select a user to fetch notifications.');
-        }
-        const url = `${this.apiBaseUrl}/notifications?user_id=${userId}`;
-        return this.http.get(url, {headers});
     }
 
     /** Update notifications for the logged-in user or a specific user */

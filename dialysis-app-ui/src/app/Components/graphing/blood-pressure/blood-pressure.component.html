@@ -1,16 +1,19 @@
-<div>
+<div class="d-flex flex-column h-100">
+  <div class="mb-3">
     <p-datePicker
-            [(ngModel)]="dateRange"
-            selectionMode="range"
-            dateFormat="mm/dd/yy"
-            placeholder="Select Date Range"
-            showIcon="true"
-            (onSelect)="fetchDataAndUpdateChart()"
+      [(ngModel)]="dateRange"
+      selectionMode="range"
+      (onSelect)="fetchDataAndUpdateChart()"
+      [showIcon]="true"
+      class="w-50"
     ></p-datePicker>
+  </div>
+  <div class="flex-grow-1 chart-wrapper">
     <p-chart
-            type="line"
-            [data]="chartData"
-            [options]="chartOptions"
-            style="width: 100%; height: 100%;"
+      type="line"
+      [data]="chartData"
+      [options]="chartOptions"
+      style="width:100%; height:100%;"
     ></p-chart>
+  </div>
 </div>

@@ -10,7 +10,6 @@ import {environment} from "../../environments/environment";
 })
 export class ProviderService {
     private API_BASE_URL = environment.apiUrl + '/provider';
-    // private API_BASE_URL = 'http://localhost:8004/provider';
     public selectedPatientSubject$ = new BehaviorSubject<PatientTableCard | null>(null);
     constructor(private http: HttpClient) {
     }
