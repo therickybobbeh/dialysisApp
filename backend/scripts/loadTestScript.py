@@ -43,7 +43,8 @@ class PDManagementUser(HttpUser):
                 "systolic": 120,
                 "effluent_volume": 1.2,
                 "session_date": str(datetime.now(timezone.utc)),
-                "session_duration": "3 hours"
+                "session_duration": "3 hours",
+                "protein": random.randint(1, 30)
             }
             patient_id = str(uuid.uuid4())
             self.client.post(f"/patients/{patient_id}/dialysis-session", json=session_data, headers=headers)

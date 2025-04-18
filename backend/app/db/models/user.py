@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, JSON, ARRAY
+from sqlalchemy import Column, Integer, String, JSON, ARRAY, Float
 from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 
@@ -12,6 +12,8 @@ class User(Base):
     role = Column(String, nullable=False, default="patient")
     notifications = Column(JSON, default={})
     patients = Column(ARRAY(Integer), default=[])
+    sex = Column(String, nullable=False)
+    height = Column(Float, nullable=False)
 
     # Relationships
     dialysis_sessions = relationship("DialysisSession", back_populates="patient", cascade="all, delete-orphan")

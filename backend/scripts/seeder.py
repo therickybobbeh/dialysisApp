@@ -20,6 +20,8 @@ def seed_data():
                 "password": "password123",
                 "role": "patient",
                 "patients": {},
+                "sex": "female",
+                "height": 165.5,
                 "notifications": {
                     "lowBloodPressure": False,
                     "highBloodPressure": True,
@@ -36,6 +38,8 @@ def seed_data():
                 "password": "password456",
                 "role": "patient",
                 "patients": {},
+                "sex": "male",
+                "height": 180.2,
                 "notifications": {
                     "lowBloodPressure": True,
                     "highBloodPressure": False,
@@ -52,6 +56,8 @@ def seed_data():
                 "password": "provider123",
                 "role": "provider",
                 "patients": {1, 2, 6},
+                "sex": "male",
+                "height": 175.0,
                 "notifications": {
                     "lowBloodPressure": True,
                     "highBloodPressure": True,

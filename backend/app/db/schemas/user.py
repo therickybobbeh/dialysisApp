@@ -5,6 +5,8 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     role: str
+    height = float
+    sex = str
 
 class UserResponse(BaseModel):
     id: int
