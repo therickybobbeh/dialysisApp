@@ -26,11 +26,19 @@ ALTER TABLE public.users
 
 -- 3) Load users (CSV, with proper quoting)
 COPY public.users (
-    id,name,email,password,role,notifications,patients,sex,height
+    id,
+    name,
+    email,
+    password,
+    role,
+    notifications,
+    patients,
+    sex,
+    height
 ) FROM stdin WITH (FORMAT csv);
-1,"Alice",alice@example.com,"$argon2id$…","patient","{""lowBloodPressure"":false,""highBloodPressure"":true,""dialysisGrowthAdjustment"":false,""fluidOverloadHigh"":true,""fluidOverloadWatch"":false,""effluentVolume"":true,""protein"":true}","{}",female,165.5
-2,"Bob",bob@example.com,"$argon2id$…","patient","{""lowBloodPressure"":false,""highBloodPressure"":true,""dialysisGrowthAdjustment"":false,""fluidOverloadHigh"":true,""fluidOverloadWatch"":false,""effluentVolume"":true,""protein"":true}","{}",male,180.2
-3,"Dr. Smith",drsmith@example.com,"$argon2id$…","provider","{}","{1,2,6}",male,175.0
+1,"Alice","alice@example.com","$argon2id$v=19$m=65536,t=3,p=4$g7CzL0siiYqy0UdLlzLsuQ$mM/wGHFIq83Gm/bteVs/BSOJ2VOLFIP/xBVwCfv4quw","patient","{""lowBloodPressure"":false,""highBloodPressure"":true,""dialysisGrowthAdjustment"":false,""fluidOverloadHigh"":true,""fluidOverloadWatch"":false,""effluentVolume"":true,""protein"":true}","{}",female,165.5
+2,"Bob","bob@example.com","$argon2id$v=19$m=65536,t=3,p=4$qWDGK0tIndImSNcRfESAgQ$xnMU1+7MJ2/eBTYmAFfCDQRS5nBGFqagJ1ncU/jkkDg","patient","{""lowBloodPressure"":false,""highBloodPressure"":true,""dialysisGrowthAdjustment"":false,""fluidOverloadHigh"":true,""fluidOverloadWatch"":false,""effluentVolume"":true,""protein"":true}","{}",male,180.2
+3,"Dr. Smith","drsmith@example.com","$argon2id$v=19$m=65536,t=3,p=4$3e4wRbupvqcfUHLEGDEcMQ$Ru4hTyEcVho3WsYK7UHZ7p6QUQBdwoAC3eI04L/RYpw","provider","{}","{1,2,6}",male,175.0
 \.
 
 -- bump users sequence
