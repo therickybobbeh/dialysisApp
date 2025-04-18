@@ -77,11 +77,11 @@ export function mapBackendDataToPatientAlerts(data: PatientAlertsBackend): Patie
     },
     effluentVolume: {
       message: 'Effluent volume information.',
-      type: data.effluentVolume ? 'monitor' : null,
+      type: data.effluentVolume ? 'information' : null,
     },
     protein: {
       message: 'Low protein intake detected.',
-      type: data.protein ? 'critical' : null,
+      type: data.protein ? 'information' : null,
     },
   };
 }

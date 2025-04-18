@@ -1,8 +1,10 @@
 import { Component, OnInit } from '@angular/core';
-import { NgClass, NgForOf } from '@angular/common';
+import { NgClass, NgForOf, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DropdownModule } from 'primeng/dropdown';
 import { DatePipe } from '@angular/common';
+import {ButtonDirective, ButtonIcon, ButtonLabel} from 'primeng/button';
+import { Tooltip } from 'primeng/tooltip';
 
 import {
   mapBackendDataToPatientAlerts,
@@ -21,14 +23,14 @@ interface NotificationItem {
   selector: 'app-notifications',
   templateUrl: './notifications.component.html',
   styleUrls: ['./notifications.component.scss'],
-  imports: [NgClass, NgForOf, FormsModule, DropdownModule, DatePipe],
+  imports: [NgClass, NgForOf, NgIf, FormsModule, DropdownModule, DatePipe, ButtonDirective, Tooltip, ButtonIcon, ButtonLabel]
 })
 export class NotificationsComponent implements OnInit {
   notificationTypes = [
     { label: 'All',         value: 'all'         },
     { label: 'Critical',    value: 'critical'    },
     { label: 'Monitor',     value: 'monitor'     },
-    { label: 'Information', value: 'information' },
+    { label: 'Information', value: 'information' }
   ];
 
   selectedType: string = 'all';
@@ -37,11 +39,6 @@ export class NotificationsComponent implements OnInit {
   constructor(private notificationsService: NotificationsService) {}
 
   ngOnInit(): void {
-    this.loadNotifications();
-  }
-
-  private loadNotifications(): void {
-    // getNotifications returns an Observable<PatientAlertsBackend>
     this.notificationsService.getNotifications().then(obs => {
       obs.subscribe({
         next: (data: PatientAlertsBackend) => {
@@ -58,7 +55,7 @@ export class NotificationsComponent implements OnInit {
       .map(key => ({
         message: frontend[key].message,
         type: frontend[key].type,
-        timestamp: new Date() //TODO: when we add dates to the db
+        timestamp: new Date()
       }))
       .filter(n => n.type !== null) as NotificationItem[];
   }
@@ -68,5 +65,13 @@ export class NotificationsComponent implements OnInit {
       return this.originalNotifications;
     }
     return this.originalNotifications.filter(n => n.type === this.selectedType);
+  }
+
+  dismissOne(index: number) {
+    this.originalNotifications.splice(index, 1);
+  }
+
+  dismissAll() {
+    this.originalNotifications = [];
   }
 }

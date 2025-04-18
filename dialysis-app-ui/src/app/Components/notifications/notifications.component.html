@@ -1,36 +1,73 @@
-<div class="mb-4">
-  <strong>Notification Types:</strong>
-  <div class="d-flex align-items-center gap-3 mt-2">
-    <i class="pi pi-info-circle text-primary"></i> Informational
-    <i class="pi pi-exclamation-triangle text-warning"></i> Monitor
-    <i class="pi pi-times-circle text-danger"></i> Critical
-  </div>
-</div>
+<div class="d-flex flex-column h-100">
+  <div class="card-body d-flex flex-column p-3">
+    <div class="mb-3">
+      <strong>Notification Types:</strong>
+      <div class="d-flex align-items-center gap-3 mt-2">
+        <i class="pi pi-info-circle text-primary fs-4"></i> Informational
+        <i class="pi pi-exclamation-triangle text-warning fs-4"></i> Monitor
+        <i class="pi pi-times-circle text-danger fs-4"></i> Critical
+      </div>
+    </div>
+    <div class="mb-3">
+      <p-dropdown
+        [options]="notificationTypes"
+        [(ngModel)]="selectedType"
+        name="selectedType"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Filter by type"
+        class="w-100"
+      ></p-dropdown>
+    </div>
+    <div
+      class="overflow-auto mb-3 border border-secondary-subtle rounded"
+      style="height: 26rem;"
+    >
+      <div
+        *ngFor="let note of filteredNotifications(); let idx = index"
+        class="d-flex align-items-start border rounded p-2 mb-2"
+      >
+        <i
+          class="pi fs-4 me-3 flex-shrink-0"
+          [ngClass]="{
+            'pi-info-circle text-primary':        note.type === 'information',
+            'pi-exclamation-triangle text-warning':note.type === 'monitor',
+            'pi-times-circle text-danger':         note.type === 'critical'
+          }"
+        ></i>
 
-<!-- Filter Dropdown -->
-<p-dropdown
-  [options]="notificationTypes"
-  [(ngModel)]="selectedType"
-  name="selectedType"
-  placeholder="Filter by type"
-  optionLabel="label"
-  styleClass="mb-3 w-100"
-></p-dropdown>
+        <div class="flex-grow-1">
+          {{ note.message }}<br />
+          <small class="text-muted" *ngIf="note.timestamp">
+            {{ note.timestamp | date:'short' }}
+          </small>
+        </div>
 
-<!-- Notifications List -->
-<div *ngFor="let note of filteredNotifications()" class="p-3 border rounded mb-2 d-flex align-items-start gap-3">
-  <i
-    [ngClass]="{
-      'pi pi-info-circle text-primary': note.type === 'information',
-      'pi pi-exclamation-triangle text-warning': note.type === 'monitor',
-      'pi pi-times-circle text-danger':      note.type === 'critical'
-    }"
-    style="font-size: 1.5rem;"
-  ></i>
-  <div class="flex-grow-1">
-    <div>{{ note.message }}</div>
-    <small class="text-muted" *ngIf="note.timestamp">
-      {{ note.timestamp | date: 'short' }}
-    </small>
+        <button
+          type="button"
+          class="btn btn-link btn-sm text-decoration-none ms-2"
+          (click)="dismissOne(idx)"
+          pTooltip="Dismiss"
+          tooltipPosition="top"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+      <div *ngIf="!filteredNotifications().length" class="text-center text-muted mt-3">
+        No notifications to show.
+      </div>
+    </div>
+    <div class="text-end">
+      <button
+        type="button"
+        class="btn btn-danger btn-sm"
+        (click)="dismissAll()"
+        [disabled]="!originalNotifications.length"
+        pTooltip="Dismiss all notifications"
+        tooltipPosition="top"
+      >
+        <i class="pi pi-times me-1"></i> Dismiss All
+      </button>
+    </div>
   </div>
 </div>
