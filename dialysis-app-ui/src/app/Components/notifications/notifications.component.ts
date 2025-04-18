@@ -4,7 +4,7 @@ import {FormsModule} from '@angular/forms';
 import {DropdownModule} from 'primeng/dropdown';
 import {DatePipe} from '@angular/common';
 import {Tooltip} from 'primeng/tooltip';
-import {filter, Subscription, switchMap} from 'rxjs';
+import {filter, Observable, of, Subscription, switchMap} from 'rxjs';
 import {
     mapBackendDataToPatientAlerts,
     PatientAlertsBackend,
@@ -64,48 +64,37 @@ export class NotificationsComponent implements OnInit, OnDestroy {
     ) {
     }
 
-ngOnInit(): void {
-    const userRole = this.authService.getUserRole();
+    ngOnInit(): void {
+        const role = this.authService.getUserRole();
 
-    if (userRole === 'provider') {
-        const selSub = this.providerService.getSelectedPatient()
-            .pipe(
-                switchMap(patient => {
-                    this.currentPatient = patient;
-                    if (!patient) {
-                        console.error('No patient selected');
-                        return this.notificationsService.getNotifications();
-                    }
-                    return this.notificationsService.getNotifications();
-                })
+        // Decide what triggers a re-fetch: TODO: use better approach than new obserble
+        // may want to move to the origianl service
+        const trigger$: Observable<null | PatientTableCard> = role === 'provider'
+            ? this.providerService.getSelectedPatient().pipe(
+                filter((patient): patient is PatientTableCard => patient !== null)
             )
-            .subscribe({
-                next: (data: PatientAlertsBackend) => {
-                    this.lastBackend = { ...data };
-                    this.originalNotifications = this.mapNotifications(data);
-                },
-                error: err => console.error('Error loading notifications:', err)
-            });
+            : of(null);
 
-        this.subscriptions.add(selSub);
-    } else {
-        const patientSub = this.notificationsService.getNotifications()
-            .subscribe({
-                next: (data: PatientAlertsBackend) => {
-                    this.lastBackend = { ...data };
-                    this.originalNotifications = this.mapNotifications(data);
-                },
-                error: err => console.error('Error loading notifications:', err)
-            });
-
-        this.subscriptions.add(patientSub);
+        this.subscriptions.add(
+            trigger$.pipe(
+                switchMap(() => this.notificationsService.getNotifications())
+            )
+                .subscribe({
+                    next: (data: PatientAlertsBackend) => {
+                        this.lastBackend = {...data};
+                        this.originalNotifications = this.mapNotifications(data);
+                    },
+                    error: (err: unknown) => console.error('Error loading notifications:', err)
+                })
+        );
     }
-}
 
     ngOnDestroy() {
         this.subscriptions.unsubscribe();
         this.originalNotifications = [];
         this.currentPatient = null;
+        this.lastBackend = null;
+        this.selectedType = 'all';
     }
 
     private mapNotifications(data: PatientAlertsBackend): NotificationItem[] {

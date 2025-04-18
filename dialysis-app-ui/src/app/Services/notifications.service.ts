@@ -28,7 +28,10 @@ export class NotificationsService {
             return this.providerService.getSelectedPatient().pipe(
                 switchMap(selectedPatient => {
                     if (!selectedPatient) {
-                        throw new Error('No user selected or logged in. Please select a user to fetch notifications.');
+                        // Return an empty observable or handle the case where no patient is selected
+                        return new Observable(observer => {
+                            observer.error('No user selected or logged in. Please select a user to fetch notifications.');
+                        });
                     }
                     const url = `${this.apiBaseUrl}/notifications?user_id=${selectedPatient.id}`;
                     return this.http.get(url, {headers});
