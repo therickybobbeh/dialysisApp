@@ -1,5 +1,6 @@
 import os
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import text
 from app.db.session import get_db
 from app.db.models.user import User
 from app.db.models.dialysis import DialysisSession
@@ -72,6 +73,11 @@ def seed_data():
         db.add_all(users)
         db.commit()
         print(" Users seeded successfully.")
+
+        # Reset the sequence for users_id_seq
+        db.execute(text("SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1), false);"))
+        db.commit()
+        print(" Sequence users_id_seq reset successfully.")
 
     # Ensure Dialysis Sessions Are Seeded
     if db.query(DialysisSession).count() == 0:
