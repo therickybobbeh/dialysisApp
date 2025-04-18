@@ -8,8 +8,9 @@ from fhir.resources.R4B.extension import Extension
 from fhir.resources.R4B.quantity import Quantity
 from fhir.resources.R4B.bundle import Bundle
 from fhir.resources.R4B.humanname import HumanName
+from app.core.config import settings
 
-HAPI_FHIR_BASE_URL = "http://localhost:8080/fhir/"
+HAPI_FHIR_BASE_URL = settings.HAPI_FHIR_BASE_URL
 HAPI_FHIR_HEADERS={"Accept": "application/fhir+json", "Content-Type": "application/fhir+json"}
 HAPI_FHIR_PATIENT_ID_BASE="KIDNEKT-PATIENT-ID-"
 HAPI_FHIR_PROCEDURE_ID_BASE="KIDNEKT-PROCEDURE-ID-"
