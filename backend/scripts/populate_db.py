@@ -87,9 +87,20 @@ for user in users:
 try:
     db.commit()
     logger.info("Sample users added successfully!")
+
+    # Reset the sequence for users_id_seq
+    db.execute(
+        text("SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1) + 1, false);")
+    )
+    db.commit()
+    logger.info("Users sequence reset successfully.")
 except IntegrityError as e:
     db.rollback()
     logger.error("Error inserting sample users:")
+    logger.error(e)
+except Exception as e:
+    db.rollback()
+    logger.error("Failed to reset users_id_seq sequence:")
     logger.error(e)
 
 # ---------------------------------------

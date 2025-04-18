@@ -18,7 +18,7 @@ def seed_data():
             {
                 "name": "Alice",
                 "email": "alice@example.com",
-                "password": "password123",
+                "password": hash_password("password123"),  # Hash the password
                 "role": "patient",
                 "patients": {},
                 "sex": "female",
@@ -36,7 +36,7 @@ def seed_data():
             {
                 "name": "Bob",
                 "email": "bob@example.com",
-                "password": "password456",
+                "password": hash_password("password456"),  # Hash the password
                 "role": "patient",
                 "patients": {},
                 "sex": "male",
@@ -54,7 +54,7 @@ def seed_data():
             {
                 "name": "Dr. Smith",
                 "email": "drsmith@example.com",
-                "password": "provider123",
+                "password": hash_password("provider123"),  # Hash the password
                 "role": "provider",
                 "patients": {1, 2, 6},
                 "sex": "male",
@@ -99,6 +99,11 @@ def seed_data():
         db.add_all(dialysis_sessions)
         db.commit()
         print(" Dialysis sessions seeded successfully.")
+
+        # Reset the sequence for dialysis_sessions_id_seq
+        db.execute(text("SELECT setval('dialysis_sessions_id_seq', COALESCE((SELECT MAX(id) FROM dialysis_sessions), 1), false);"))
+        db.commit()
+        print(" Sequence dialysis_sessions_id_seq reset successfully.")
 
     # Ensure Food Intake Data Is Seeded
     if db.query(FoodIntake).count() == 0:

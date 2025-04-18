@@ -86,9 +86,7 @@ CREATE TABLE public.dialysis_sessions (
     effluent_volume double precision NOT NULL,
     session_date timestamp without time zone NOT NULL,
     session_duration varchar,
-    protein double precision NOT NULL,
-    sex varchar NOT NULL,
-    height double precision NOT NULL
+    protein double precision NOT NULL
 );
 CREATE SEQUENCE public.dialysis_sessions_id_seq
     AS integer
