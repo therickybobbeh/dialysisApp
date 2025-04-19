@@ -18,8 +18,9 @@ def seed_data():
             {
                 "name": "Alice",
                 "email": "alice@example.com",
-                "password": hash_password("password123"),  # Hash the password
+                "password": hash_password("password123"),
                 "role": "patient",
+                "birthdate": "1990-01-01",  #
                 "patients": {},
                 "sex": "female",
                 "height": 165.5,
@@ -36,8 +37,9 @@ def seed_data():
             {
                 "name": "Bob",
                 "email": "bob@example.com",
-                "password": hash_password("password456"),  # Hash the password
+                "password": hash_password("password456"),
                 "role": "patient",
+                "birthdate": "1985-05-15",
                 "patients": {},
                 "sex": "male",
                 "height": 180.2,
@@ -54,8 +56,9 @@ def seed_data():
             {
                 "name": "Dr. Smith",
                 "email": "drsmith@example.com",
-                "password": hash_password("provider123"),  # Hash the password
+                "password": hash_password("provider123"),
                 "role": "provider",
+                "birthdate": "1970-09-25",
                 "patients": {1, 2, 6},
                 "sex": "male",
                 "height": 175.0,
@@ -70,6 +73,7 @@ def seed_data():
                 }
             },
         ]
+
         db.add_all(users)
         db.commit()
         print(" Users seeded successfully.")

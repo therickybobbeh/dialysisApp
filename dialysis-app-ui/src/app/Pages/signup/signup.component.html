@@ -1,123 +1,139 @@
 <!-- signup.component.html -->
 <div class="container d-flex justify-content-center align-items-center vh-100">
-  <div class="card shadow-lg" style="max-width: 420px; width: 100%;">
-    <div class="card-body p-4">
-      <h2 class="card-title text-center mb-4">Register</h2>
+    <div class="card shadow-lg" style="max-width: 420px; width: 100%;">
+        <div class="card-body p-4">
+            <h2 class="card-title text-center mb-4">Register</h2>
 
-      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-        <!-- Name -->
-        <div class="mb-3">
-          <label for="name" class="form-label">Name</label>
-          <input
-            id="name"
-            pInputText
-            formControlName="name"
-            class="form-control"
-            placeholder="Enter your full name"
-          />
-          <div
-            *ngIf="submitted && registerFormControls['name']?.errors"
-            class="text-danger small mt-1"
-          >
-            Name is required.
-          </div>
+            <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+                <!-- Name -->
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name</label>
+                    <input
+                            id="name"
+                            pInputText
+                            formControlName="name"
+                            class="form-control"
+                            placeholder="Enter your full name"
+                    />
+                    <div
+                            *ngIf="submitted && registerFormControls['name']?.errors"
+                            class="text-danger small mt-1"
+                    >
+                        Name is required.
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input
+                            id="email"
+                            pInputText
+                            formControlName="email"
+                            type="email"
+                            class="form-control"
+                            placeholder="you@example.com"
+                    />
+                    <div
+                            *ngIf="submitted && registerFormControls['email']?.errors"
+                            class="text-danger small mt-1"
+                    >
+                        <div *ngIf="registerFormControls['email']?.errors?.['required']">
+                            Email is required.
+                        </div>
+                        <div *ngIf="registerFormControls['email']?.errors?.['email']">
+                            Invalid email format.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input
+                            id="password"
+                            pInputText
+                            type="password"
+                            formControlName="password"
+                            class="form-control"
+                            placeholder="At least 6 characters"
+                    />
+                    <div
+                            *ngIf="submitted && registerFormControls['password']?.errors"
+                            class="text-danger small mt-1"
+                    >
+                        <div *ngIf="registerFormControls['password']?.errors?.['required']">
+                            Password is required.
+                        </div>
+                        <div *ngIf="registerFormControls['password']?.errors?.['minlength']">
+                            Minimum length is 6 characters.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Height & Sex -->
+                <div class="row gx-3 mb-4">
+                    <div class="col-6">
+                        <div class="height">
+                            <label for="height" class="form-label">Height (in)</label>
+                            <input
+                                    id="height"
+                                    type="number"
+                                    formControlName="height"
+                                    class="form-control"
+                                    placeholder="e.g. 70"
+                                    min="0"
+                            />
+                            <div
+                                    *ngIf="submitted && registerFormControls['height']?.errors"
+                                    class="text-danger small mt-1"
+                            >
+                                Height is required and must be positive.
+                            </div>
+                        </div>
+                        <div>
+                            <div class="form-group">
+                                <label for="birth_date">Birthdate</label>
+                                <input
+                                        type="date"
+                                        id="birth_date"
+                                        formControlName="birth_date"
+                                        class="form-control"
+                                />
+                                <div *ngIf="registerFormControls['birth_date']?.errors && submitted" class="error">
+                                    Birthdate is required.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <label for="sex" class="form-label">Sex</label>
+                        <p-dropdown
+                                id="sex"
+                                [options]="sexes"
+                                optionLabel="label"
+                                formControlName="sex"
+                                class="form-select"
+                                placeholder="Select"
+                        ></p-dropdown>
+                        <div
+                                *ngIf="submitted && registerFormControls['sex']?.errors"
+                                class="text-danger small mt-1"
+                        >
+                            Sex is required.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <button
+                        type="submit"
+                        class="btn btn-primary w-100 btn-lg"
+                        [disabled]="registerForm.invalid"
+                >
+                    Register
+                </button>
+            </form>
         </div>
-
-        <!-- Email -->
-        <div class="mb-3">
-          <label for="email" class="form-label">Email</label>
-          <input
-            id="email"
-            pInputText
-            formControlName="email"
-            type="email"
-            class="form-control"
-            placeholder="you@example.com"
-          />
-          <div
-            *ngIf="submitted && registerFormControls['email']?.errors"
-            class="text-danger small mt-1"
-          >
-            <div *ngIf="registerFormControls['email']?.errors?.['required']">
-              Email is required.
-            </div>
-            <div *ngIf="registerFormControls['email']?.errors?.['email']">
-              Invalid email format.
-            </div>
-          </div>
-        </div>
-
-        <!-- Password -->
-        <div class="mb-3">
-          <label for="password" class="form-label">Password</label>
-          <input
-            id="password"
-            pInputText
-            type="password"
-            formControlName="password"
-            class="form-control"
-            placeholder="At least 6 characters"
-          />
-          <div
-            *ngIf="submitted && registerFormControls['password']?.errors"
-            class="text-danger small mt-1"
-          >
-            <div *ngIf="registerFormControls['password']?.errors?.['required']">
-              Password is required.
-            </div>
-            <div *ngIf="registerFormControls['password']?.errors?.['minlength']">
-              Minimum length is 6 characters.
-            </div>
-          </div>
-        </div>
-
-        <!-- Height & Sex -->
-        <div class="row gx-3 mb-4">
-          <div class="col-6">
-            <label for="height" class="form-label">Height (in)</label>
-            <input
-              id="height"
-              type="number"
-              formControlName="height"
-              class="form-control"
-              placeholder="e.g. 70"
-              min="0"
-            />
-            <div
-              *ngIf="submitted && registerFormControls['height']?.errors"
-              class="text-danger small mt-1"
-            >
-              Height is required and must be positive.
-            </div>
-          </div>
-          <div class="col-6">
-            <label for="sex" class="form-label">Sex</label>
-            <p-dropdown
-              id="sex"
-              [options]="sexes"
-              optionLabel="label"
-              formControlName="sex"
-              class="form-select"
-              placeholder="Select"
-            ></p-dropdown>
-            <div
-              *ngIf="submitted && registerFormControls['sex']?.errors"
-              class="text-danger small mt-1"
-            >
-              Sex is required.
-            </div>
-          </div>
-        </div>
-
-        <!-- Submit -->
-        <button
-          type="submit"
-          class="btn btn-primary w-100 btn-lg"
-          [disabled]="registerForm.invalid"
-        >
-          Register
-        </button>
-      </form>
     </div>
-  </div>
 </div>

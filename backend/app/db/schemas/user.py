@@ -11,7 +11,8 @@ class UserCreate(BaseModel):
     notifications: Optional[dict] = {}
     patients: Optional[List[int]] = []
     sex: str
-    height: float  
+    height: float
+    birth_date: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: int

@@ -2,15 +2,11 @@ import {Component} from '@angular/core';
 import {FormBuilder, FormGroup, Validators} from '@angular/forms';
 import {UserCreate} from "../../Models/users";
 import {Router} from '@angular/router';
-
-// PrimeNG modules
 import {InputTextModule} from 'primeng/inputtext';
 import {PasswordModule} from 'primeng/password';
 import {DropdownModule} from 'primeng/dropdown';
 import {InputNumberModule} from 'primeng/inputnumber';
 import {ButtonModule} from 'primeng/button';
-
-// Angular modules
 import {ReactiveFormsModule} from '@angular/forms';
 import {NgIf, NgOptimizedImage} from '@angular/common';
 import {AuthService} from "../../Services/authentication.service";
@@ -50,7 +46,8 @@ export class SignupComponent {
             password: ['', [Validators.required, Validators.minLength(6)]],
             role: ['patient', Validators.required],
             height: [null, [Validators.required, Validators.min(0)]],
-            sex: [null, Validators.required]
+            sex: [null, Validators.required],
+            birth_date: [null, [Validators.required]]
         });
     }
 
@@ -67,8 +64,8 @@ export class SignupComponent {
         const formData = this.registerForm.value;
         const user: UserCreate = {
             ...formData,
-            sex: formData.sex?.value, // Convert sex to a string
-            role: formData.role || null // Add provider field if not present
+            sex: formData.sex?.value,
+            role: formData.role || null
         };
 
         try {

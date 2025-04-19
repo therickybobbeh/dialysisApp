@@ -1,4 +1,4 @@
-import {Component, Input, OnDestroy, OnInit} from '@angular/core';
+import {ChangeDetectorRef, Component, Input, OnDestroy, OnInit} from '@angular/core';
 import {FormBuilder, ReactiveFormsModule} from '@angular/forms';
 import {DialysisService} from '../../Services/dialysis.service';
 import {AuthService} from '../../Services/authentication.service';
@@ -65,7 +65,9 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
         private dialysisService: DialysisService,
         private authService: AuthService,
         private providerService: ProviderService,
-        private confirmationService: ConfirmationService
+        private confirmationService: ConfirmationService,
+        private cdRef: ChangeDetectorRef
+
     ) {
         this.dialysisData = new DialysisTreatmentData();
     }
@@ -212,7 +214,9 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
                         this.dialogMessage = 'Successfully saved.';
                         this.displayDialog = true;
                         this.dialysisData.reset({patient_id: this.userId});
-                        this.dialysisData = new DialysisTreatmentData();
+                        this.dialysisData.updateValueAndValidity();
+                        this.isEditing = false;
+                        this.cdRef.detectChanges();
                         console.log('Logged dialysis data as patient:', response);
                     } else {
                         alert('Submission failed.');
@@ -258,28 +262,28 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
     /**
      * Deletes the current session.
      */
-deleteSessionData(): void {
-    const sessionId = this.dialysisData.value.session_id;
-    if (!sessionId) {
-        console.error('No session id available.');
-        return;
+    deleteSessionData(): void {
+        const sessionId = this.dialysisData.value.session_id;
+        if (!sessionId) {
+            console.error('No session id available.');
+            return;
+        }
+        this.dialysisService.deleteDialysisSession(sessionId)
+            .pipe(take(1))
+            .subscribe({
+                next: response => {
+                    console.log('Session deleted successfully:', response);
+                    this.dialysisData.reset({patient_id: this.userId});
+                    this.dialogMessage = 'Session deleted successfully.';
+                    this.displayDialog = true;
+                },
+                error: err => {
+                    console.error('Error deleting session:', err);
+                    this.dialogMessage = 'Error deleting session. Please try again.';
+                    this.displayDialog = true;
+                }
+            });
     }
-    this.dialysisService.deleteDialysisSession(sessionId)
-        .pipe(take(1))
-        .subscribe({
-            next: response => {
-                console.log('Session deleted successfully:', response);
-                this.dialysisData.reset({ patient_id: this.userId });
-                this.dialogMessage = 'Session deleted successfully.';
-                this.displayDialog = true;
-            },
-            error: err => {
-                console.error('Error deleting session:', err);
-                this.dialogMessage = 'Error deleting session. Please try again.';
-                this.displayDialog = true;
-            }
-        });
-}
 
     /**
      * Enables or disables form controls based on whether both session_date and session_type are set.

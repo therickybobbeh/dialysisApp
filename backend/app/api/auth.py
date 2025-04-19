@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Form
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
+
 from jose import jwt, JWTError
 
+from app.db.fhir_integration import fhir_create_patient_resource
 from app.db.schemas.user import UserCreate, UserResponse
 from app.db.models.user import User
 from app.core.security import create_access_token, verify_password, hash_password, create_refresh_token
@@ -17,20 +19,63 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
 # **Register User API**
 @router.post("/register", response_model=UserResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    # 1) Check if email is already taken
+    existing = db.query(User).filter(User.email == user.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # 2) Hash and persist the user
     try:
         hashed_password = hash_password(user.password)
-        db_user = User(name=user.name, email=user.email, password=hashed_password, role=user.role, height=user.height, sex=user.sex)
+        db_user = User(
+            name=user.name,
+            email=user.email,
+            password=hashed_password,
+            role=user.role,
+            height=user.height,
+            sex=user.sex,
+            notifications={
+                "protein": False,
+                "effluentVolume": False,
+                "lowBloodPressure": False,
+                "fluidOverloadHigh": False,
+                "highBloodPressure": False,
+                "fluidOverloadWatch": False,
+                "dialysisGrowthAdjustment": False
+            },
+            birth_date=user.birth_date,
+        )
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
-        return db_user
-    except Exception as e:
-        logger.error(f"Error during registration: {e}")
-        raise HTTPException(status_code=400, detail="Registration failed")
+    except Exception as db_err:
+        logger.error(f"DB error during registration: {db_err}")
+        raise HTTPException(status_code=500, detail="Failed to save user to database")
 
+    # 3) Try to create the FHIR resource
+    try:
+        import asyncio
+        asyncio.run(fhir_create_patient_resource(
+            patient_id=db_user.id,
+            name=db_user.name,
+            birth_date=user.birth_date,
+            gender=db_user.sex,
+            height=db_user.height
+        ))
+    except Exception as fhir_err:
+        logger.error(f"User saved in DB, but FHIR creation failed: {fhir_err}")
+        # Return 201 but include info about FHIR failure
+        raise HTTPException(
+            status_code=201,
+            detail="User registered, but failed to create FHIR resource"
+        )
+
+    # 4) All good
+    return db_user
 
 #  **Login API (Returns Access & Refresh Tokens)**
 @router.post("/token")
@@ -87,6 +132,6 @@ def refresh_access_token(refresh_token: str, db: Session = Depends(get_db)):
         )
 
         return {"access_token": new_access_token}
-    
+
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")

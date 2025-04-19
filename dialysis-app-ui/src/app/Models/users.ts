@@ -5,6 +5,7 @@ export interface UserCreate {
   role: string;
   height: number;
   sex: string;
+  birth_date: Date;
 }
 
 export interface UserResponse {
