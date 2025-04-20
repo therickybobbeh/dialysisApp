@@ -1,8 +1,9 @@
 # PeritonealDialysisApp
 Peritoneal Dialysis (PD) management application
 
-![Login page](https://github.gatech.edu/lalkhalil3/PeritonealDialysisApp/assets/90599/d280a85d-a77a-4ade-87fd-a0ff0eb8ab43)
 
+
+![f1](https://github.gatech.edu/lalkhalil3/PeritonealDialysisApp/assets/90599/79d19eff-459a-48cc-8265-fd494a6da94b)
 
 
 1. Project Overview
@@ -41,7 +42,8 @@ o	PostgreSQL database.
 o	Dockerized deployment.
 
 2. API Contract
-![Swagger doc of the backend APIs](https://github.gatech.edu/lalkhalil3/PeritonealDialysisApp/assets/90599/4e4b4aea-5c09-413c-be3f-3ee500442a9b)
+![current APIs Specs](https://github.gatech.edu/lalkhalil3/PeritonealDialysisApp/assets/90599/01786033-d60f-4be2-8a29-8f7cb3a900f0)
+
 
 2.1 Authentication Endpoints
 
@@ -79,7 +81,8 @@ o	Dockerized deployment.
 
 -food_intake
 
-![pd_managment_DB](https://github.gatech.edu/lalkhalil3/PeritonealDialysisApp/assets/90599/eeafc7b5-af00-48a8-84b6-08d612f608c5)
+![f2](https://github.gatech.edu/lalkhalil3/PeritonealDialysisApp/assets/90599/ccbbcd4e-02bb-4a83-94e0-b628511a8618)
+
 
 # To build and run the App locally:
 
