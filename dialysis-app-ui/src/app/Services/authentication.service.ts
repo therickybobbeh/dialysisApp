@@ -114,6 +114,7 @@ export class AuthService {
         return userId ? Number(userId) : null;
     }
 
+
     /** Decode token to check expiry, user_id, etc. */
     decodeToken(token: string): any {
         try {

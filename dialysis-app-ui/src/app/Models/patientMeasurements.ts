@@ -12,7 +12,7 @@ export class DialysisTreatmentData extends FormGroup {
       systolic: new FormControl<number | null>(null, Validators.required),
       effluent_volume: new FormControl<number | null>(null, Validators.required),
       session_date: new FormControl<string | null>(null, Validators.required),
-      session_duration: new FormControl<string | null>(null),
+      session_duration: new FormControl<string | null>(null, Validators.required),
       session_id: new FormControl<number | null>(null),
     });
   }

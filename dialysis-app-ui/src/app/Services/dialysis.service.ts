@@ -1,9 +1,10 @@
 import {Injectable} from '@angular/core';
 import {HttpClient, HttpHeaders, HttpParams} from '@angular/common/http';
-import {map, Observable, take} from 'rxjs';
+import {map, Observable, take, tap} from 'rxjs';
 import {DialysisSessionCreate, DialysisSessionResponse} from '../Models/dialysis';
 import {ProviderService} from "./provider.service";
 import {environment} from "../../environments/environment";
+import {NotificationsService} from "./notifications.service";
 
 @Injectable({
     providedIn: 'root'
@@ -14,7 +15,8 @@ export class DialysisService {
     private token = localStorage.getItem('token');
 
     constructor(private http: HttpClient,
-                private providerService: ProviderService) {
+                private providerService: ProviderService,
+                private notificationsService: NotificationsService) {
     }
 
     /**
@@ -30,6 +32,9 @@ export class DialysisService {
             {headers}
         );
     }
+
+
+
 
     /**
      * GET /dialysis/sessions
@@ -71,7 +76,8 @@ export class DialysisService {
                         return sessions.filter(session => session.session_type === session_type);
                     }
                     return sessions;
-                })
+                }),
+                tap(() => this.notificationsService.triggerReload())
             );
     }
 

@@ -67,7 +67,6 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
         private providerService: ProviderService,
         private confirmationService: ConfirmationService,
         private cdRef: ChangeDetectorRef
-
     ) {
         this.dialysisData = new DialysisTreatmentData();
     }
@@ -111,6 +110,12 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
                 })
             );
         }
+        this.subscriptions.add(
+            this.providerService.selectedPatientSubject$.subscribe((patient) => {
+                this.selectedPatient = patient;
+                this.currentPatientId = patient ? patient.id : -1;
+            })
+        );
     }
 
     ngOnDestroy() {
@@ -299,17 +304,17 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
     }
 
     resetForm(): void {
-    const session_date = this.dialysisData.get('session_date')?.value;
-    const session_type = this.dialysisData.get('session_type')?.value;
+        const session_date = this.dialysisData.get('session_date')?.value;
+        const session_type = this.dialysisData.get('session_type')?.value;
 
-    this.dialysisData.reset({
-        patient_id: this.userId,
-        session_date
-    });
+        this.dialysisData.reset({
+            patient_id: this.userId,
+            session_date
+        });
 
-    this.isEditing = false;
-    this.updateControlsState();
-    this.cdRef.detectChanges();
-}
+        this.isEditing = false;
+        this.updateControlsState();
+        this.cdRef.detectChanges();
+    }
 
 }
