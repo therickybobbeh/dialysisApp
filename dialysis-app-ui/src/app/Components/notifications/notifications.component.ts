@@ -67,17 +67,21 @@ export class NotificationsComponent implements OnInit, OnDestroy {
     ngOnInit(): void {
         const role = this.authService.getUserRole();
 
-        // Decide what triggers a re-fetch: TODO: use better approach than new obserble
-        // may want to move to the origianl service
         const trigger$: Observable<null | PatientTableCard> = role === 'provider'
             ? this.providerService.getSelectedPatient().pipe(
                 filter((patient): patient is PatientTableCard => patient !== null)
             )
-            : of(null);
+            : of({
+                id: this.authService.getUserID(),
+            } as PatientTableCard);
 
+        // Initial load from selection
         this.subscriptions.add(
             trigger$.pipe(
-                switchMap(() => this.notificationsService.getNotifications())
+                switchMap((patient: PatientTableCard | null) => {
+                    this.currentPatient = patient;
+                    return this.notificationsService.getNotifications();
+                })
             )
                 .subscribe({
                     next: (data: PatientAlertsBackend) => {
@@ -85,6 +89,21 @@ export class NotificationsComponent implements OnInit, OnDestroy {
                         this.originalNotifications = this.mapNotifications(data);
                     },
                     error: (err: unknown) => console.error('Error loading notifications:', err)
+                })
+        );
+
+        // Reload on trigger
+        this.subscriptions.add(
+            this.notificationsService.triggerNotificationReload$
+                .pipe(
+                    switchMap(() => this.notificationsService.getNotifications())
+                )
+                .subscribe({
+                    next: (data: PatientAlertsBackend) => {
+                        this.lastBackend = {...data};
+                        this.originalNotifications = this.mapNotifications(data);
+                    },
+                    error: (err: unknown) => console.error('Error reloading notifications:', err)
                 })
         );
     }
@@ -104,7 +123,7 @@ export class NotificationsComponent implements OnInit, OnDestroy {
                 key,
                 message: frontend[key].message,
                 type: frontend[key].type,
-                timestamp: new Date()    // TODO: replace with real timestamp!
+                timestamp: new Date() // TODO: real timestamp
             }))
             .filter(n => n.type !== null) as NotificationItem[];
     }
@@ -124,7 +143,6 @@ export class NotificationsComponent implements OnInit, OnDestroy {
             .updateNotifications(this.lastBackend, this.currentPatient.id)
             .subscribe({
                 next: () => {
-                    // locally remove it
                     this.originalNotifications = this.originalNotifications.filter(n => n.key !== item.key);
                 },
                 error: err => {
@@ -149,5 +167,4 @@ export class NotificationsComponent implements OnInit, OnDestroy {
                 }
             });
     }
-
 }
