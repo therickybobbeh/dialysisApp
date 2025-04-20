@@ -14,12 +14,16 @@
                             formControlName="name"
                             class="form-control"
                             placeholder="Enter your full name"
+                            (input)="onNameInput()"
                     />
                     <div
                             *ngIf="submitted && registerFormControls['name']?.errors"
                             class="text-danger small mt-1"
                     >
                         Name is required.
+                    </div>
+                    <div *ngIf="showWarning" class="warning text-center text-muted">
+                        Please enter both first and last name separated by a space.
                     </div>
                 </div>
 

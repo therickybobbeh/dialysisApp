@@ -50,21 +50,20 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
             birth_date=user.birth_date,
         )
         db.add(db_user)
-        # TODO: add logic to pick providers
+        db.commit()
+        db.refresh(db_user)
+
+        # todo: replace this with proper dr selection
         doctor_email = "drsmith@example.com"
         doctor = db.query(User).filter(User.email == doctor_email).first()
 
+        # Step 4: Add the user to the doctor's patient list
         if doctor:
-            if doctor.patients is None:
-                doctor.patients = set()
-            else:
-                doctor.patients = set(doctor.patients)
+            doctor.patients = set(doctor.patients or [])
             doctor.patients.add(db_user.id)
             db.commit()
             logger.info(f"Added patient {db_user.id} to Dr. {doctor.name}'s patient list.")
 
-        db.commit()
-        db.refresh(db_user)
     except Exception as db_err:
         logger.error(f"DB error during registration: {db_err}")
         raise HTTPException(status_code=500, detail="Failed to save user to database")
@@ -81,13 +80,10 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         ))
     except Exception as fhir_err:
         logger.error(f"User saved in DB, but FHIR creation failed: {fhir_err}")
-        # Return 201 but include info about FHIR failure
         raise HTTPException(
             status_code=201,
             detail="User registered, but failed to create FHIR resource"
         )
-
-    # 4) All good
     return db_user
 
 #  **Login API (Returns Access & Refresh Tokens)**

@@ -29,6 +29,7 @@ import {AuthService} from "../../Services/authentication.service";
 export class SignupComponent {
     registerForm: FormGroup;
     submitted = false;
+    showWarning = false;
 
     sexes = [
         {label: 'Male', value: 'male'},
@@ -41,7 +42,7 @@ export class SignupComponent {
         private router: Router
     ) {
         this.registerForm = this.fb.group({
-            name: ['', Validators.required],
+            name: ['', [Validators.required, Validators.pattern(/^\S+\s+\S+$/)]],
             email: ['', [Validators.required, Validators.email]],
             password: ['', [Validators.required, Validators.minLength(6)]],
             role: ['patient', Validators.required],
@@ -49,6 +50,11 @@ export class SignupComponent {
             sex: [null, Validators.required],
             birth_date: [null, [Validators.required]]
         });
+    }
+
+    onNameInput() {
+        const nameControl = this.registerForm.get('name');
+        this.showWarning = (nameControl?.invalid && nameControl?.touched) ?? false;
     }
 
     get registerFormControls() {
