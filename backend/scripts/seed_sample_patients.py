@@ -110,25 +110,28 @@ def _gen_stable_patient_dialysis_sessions(patient_id, start_session_id, days, ag
 def main():
     db = next(get_db())
 
-    records = [
-        (_create_patient(4, 17, "female", 175),
-         _gen_stable_patient_dialysis_sessions(4, 3, 7, 17, "female", 175, 62)),
-        (_create_provider(5, patients=[4]), [])
-    ]
+    if db.query(User).filter(User.name == "testuser4 PATIENT").all() is None:
 
-    users = [user for user,data in records]
+        records = [
+            (_create_patient(4, 17, "female", 175),
+             _gen_stable_patient_dialysis_sessions(4, 3, 7, 17, "female", 175, 62)),
+            (_create_provider(5, patients=[4]), [])
+        ]
 
-    db.add_all(users)
-    db.commit()
+        users = [user for user,data in records]
 
-    for user in users:
-        resp = sync_fhir_create_patient_resource(user.id, user.name, user.birth_date, user.sex, user.height)
+        db.add_all(users)
+        db.commit()
 
-    dialysis_sessions = [data for user,data in records]
-    dialysis_sessions = [session for sessions in dialysis_sessions for session in sessions]
+        for user in users:
+            resp = sync_fhir_create_patient_resource(user.id, user.name, user.birth_date, user.sex, user.height)
 
-    db.add_all(dialysis_sessions)
-    db.commit()
+    if not db.query(DialysisSession).filter(DialysisSession.session_id == 3).all():
+        dialysis_sessions = [data for user,data in records]
+        dialysis_sessions = [session for sessions in dialysis_sessions for session in sessions]
+
+        db.add_all(dialysis_sessions)
+        db.commit()
 
     db.close()
 
