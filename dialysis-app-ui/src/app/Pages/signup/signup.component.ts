@@ -29,7 +29,6 @@ import {AuthService} from "../../Services/authentication.service";
 export class SignupComponent {
     registerForm: FormGroup;
     submitted = false;
-    showWarning = false;
 
     sexes = [
         {label: 'Male', value: 'male'},
@@ -50,11 +49,6 @@ export class SignupComponent {
             sex: [null, Validators.required],
             birth_date: [null, [Validators.required]]
         });
-    }
-
-    onNameInput() {
-        const nameControl = this.registerForm.get('name');
-        this.showWarning = (nameControl?.invalid && nameControl?.touched) ?? false;
     }
 
     get registerFormControls() {
