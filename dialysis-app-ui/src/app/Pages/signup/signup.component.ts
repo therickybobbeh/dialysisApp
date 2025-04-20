@@ -41,7 +41,7 @@ export class SignupComponent {
         private router: Router
     ) {
         this.registerForm = this.fb.group({
-            name: ['', Validators.required],
+            name: ['', [Validators.required, Validators.pattern(/^\S+\s+\S+$/)]],
             email: ['', [Validators.required, Validators.email]],
             password: ['', [Validators.required, Validators.minLength(6)]],
             role: ['patient', Validators.required],

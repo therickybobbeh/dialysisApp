@@ -7,7 +7,7 @@
             <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
                 <!-- Name -->
                 <div class="mb-3">
-                    <label for="name" class="form-label">Name</label>
+                    <label for="name" class="form-label">Full Name</label>
                     <input
                             id="name"
                             pInputText
@@ -15,11 +15,13 @@
                             class="form-control"
                             placeholder="Enter your full name"
                     />
-                    <div
-                            *ngIf="submitted && registerFormControls['name']?.errors"
-                            class="text-danger small mt-1"
-                    >
-                        Name is required.
+                    <div class="text-danger small mt-1">
+                        <div *ngIf="registerFormControls['name']?.errors?.['required']">
+                            Name is required.
+                        </div>
+                        <div *ngIf="registerFormControls['name']?.errors?.['pattern']">
+                            Please enter both first and last name.
+                        </div>
                     </div>
                 </div>
 

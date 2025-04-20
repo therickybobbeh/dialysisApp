@@ -213,10 +213,7 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
                     if (response) {
                         this.dialogMessage = 'Successfully saved.';
                         this.displayDialog = true;
-                        this.dialysisData.reset({patient_id: this.userId});
-                        this.dialysisData.updateValueAndValidity();
-                        this.isEditing = false;
-                        this.cdRef.detectChanges();
+                        this.resetForm();
                         console.log('Logged dialysis data as patient:', response);
                     } else {
                         alert('Submission failed.');
@@ -236,6 +233,7 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
                         console.log('Data saved successfully:', response);
                         this.dialogMessage = 'Successfully saved.';
                         this.displayDialog = true;
+                        this.resetForm();
                     },
                     error: err => {
                         console.error('Error saving patient data:', err);
@@ -273,9 +271,9 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
             .subscribe({
                 next: response => {
                     console.log('Session deleted successfully:', response);
-                    this.dialysisData.reset({patient_id: this.userId});
                     this.dialogMessage = 'Session deleted successfully.';
                     this.displayDialog = true;
+                    this.resetForm();
                 },
                 error: err => {
                     console.error('Error deleting session:', err);
@@ -299,4 +297,19 @@ export class MeasurementsComponent implements OnInit, OnDestroy {
             }
         }
     }
+
+    resetForm(): void {
+    const session_date = this.dialysisData.get('session_date')?.value;
+    const session_type = this.dialysisData.get('session_type')?.value;
+
+    this.dialysisData.reset({
+        patient_id: this.userId,
+        session_date
+    });
+
+    this.isEditing = false;
+    this.updateControlsState();
+    this.cdRef.detectChanges();
+}
+
 }

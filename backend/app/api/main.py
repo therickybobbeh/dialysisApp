@@ -8,7 +8,6 @@ from app.core.security import get_current_user
 from app.api.auth import router as auth_router
 from app.api.dialysis import router as dialysis_router
 from app.api.analytics import router as analytics_router
-from app.api.patient import router as patient_router
 from app.api.provider import router as provider_router
 from app.db.session import Base, engine
 from app.core.logging_config import logger
@@ -32,8 +31,7 @@ app.add_middleware(
 #  Register API Routers
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(dialysis_router) 
-app.include_router(analytics_router)  
-app.include_router(patient_router)
+app.include_router(analytics_router)
 app.include_router(provider_router)
 
 
