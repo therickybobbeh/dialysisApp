@@ -82,7 +82,13 @@ async def log_dialysis_session(
             except Exception as db_err:
                 db.rollback(); logger.error(f"DB error: {db_err}")
                 raise HTTPException(500, "Failed to update session")
+
+            logger.info(f"FHIR: about to update session with date {existing.session_date.date()}")
             try:
+                duration = datetime.strptime(existing.session_duration, '%Y-%m-%dT%H:%M:%S.%fZ')
+                hrs, mins = duration.hour, duration.minute
+                hrs -= datetime.now().hour
+                true_duration = hrs * 60 + mins
                 await fhir_create_dialysis_session_resource(
                     session_id=existing.session_id,
                     patient_id=existing.patient_id,
@@ -92,7 +98,7 @@ async def log_dialysis_session(
                     diastolic=existing.diastolic,
                     systolic=existing.systolic,
                     effluent_volume=existing.effluent_volume,
-                    duration=existing.session_duration,
+                    duration=true_duration,
                     protein=existing.protein,
                 )
                 logger.info(f"FHIR: updated session {existing.session_id}")
@@ -137,7 +143,16 @@ async def log_dialysis_session(
     except Exception as db_err:
         db.rollback(); logger.error(f"DB error: {db_err}")
         raise HTTPException(500, "Failed to log dialysis session")
+    # logger.info(f"FHIR: about to create session with date {new_sess.session_date.date().strftime('%Y-%m-%d'), type(new_sess.session_date.date().strftime('%Y-%m-%d'))}")
+    # logger.info(f"{new_sess.session_id} {new_sess.patient_id} {new_sess.session_date.date()} {new_sess.session_type} "
+    #             f"{new_sess.weight} {new_sess.diastolic} {new_sess.systolic} {new_sess.effluent_volume} "
+    #             f"{datetime.strptime(new_sess.session_duration, '%Y-%m-%dT%H:%M:%S.%fZ').minute} "
+    #             f"{new_sess.protein}")
     try:
+        duration = datetime.strptime(new_sess.session_duration, '%Y-%m-%dT%H:%M:%S.%fZ')
+        hrs, mins = duration.hour, duration.minute
+        hrs -= datetime.now().hour
+        true_duration = hrs * 60 + mins
         await fhir_create_dialysis_session_resource(
             session_id=new_sess.session_id,
             patient_id=new_sess.patient_id,
@@ -147,7 +162,7 @@ async def log_dialysis_session(
             diastolic=new_sess.diastolic,
             systolic=new_sess.systolic,
             effluent_volume=new_sess.effluent_volume,
-            duration=new_sess.session_duration,
+            duration=true_duration,
             protein=new_sess.protein,
         )
         logger.info(f"FHIR: created session {new_sess.session_id}")
@@ -226,6 +241,10 @@ async def update_dialysis_session(
         db.rollback(); logger.error(f"DB error: {db_err}")
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Failed to save session")
     try:
+        duration = datetime.strptime(session.session_duration, '%Y-%m-%dT%H:%M:%S.%fZ')
+        hrs, mins = duration.hour, duration.minute
+        hrs -= datetime.now().hour
+        true_duration = hrs * 60 + mins
         await fhir_create_dialysis_session_resource(
             session_id=session.session_id,
             patient_id=session.patient_id,
@@ -235,7 +254,7 @@ async def update_dialysis_session(
             diastolic=session.diastolic,
             systolic=session.systolic,
             effluent_volume=session.effluent_volume,
-            duration=session.session_duration,
+            duration=true_duration,
             protein=session.protein,
         )
     except Exception as fhir_err:
