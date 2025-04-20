@@ -16,6 +16,7 @@ CREATE TABLE public.users (
     notifications jsonb        DEFAULT '{}'::jsonb,
     patients      integer[]    DEFAULT '{}',
     sex           varchar      NOT NULL,
+    birth_date     date         NOT NULL,
     height        double precision NOT NULL
 );
 CREATE SEQUENCE public.users_id_seq
@@ -34,11 +35,12 @@ COPY public.users (
     notifications,
     patients,
     sex,
-    height
+    height,
+    birth_date
 ) FROM stdin WITH (FORMAT csv);
-1,"Alice","alice@example.com","$argon2id$v=19$m=65536,t=3,p=4$g7CzL0siiYqy0UdLlzLsuQ$mM/wGHFIq83Gm/bteVs/BSOJ2VOLFIP/xBVwCfv4quw","patient","{""lowBloodPressure"":false,""highBloodPressure"":true,""dialysisGrowthAdjustment"":false,""fluidOverloadHigh"":true,""fluidOverloadWatch"":false,""effluentVolume"":true,""protein"":true}","{}",female,165.5
-2,"Bob","bob@example.com","$argon2id$v=19$m=65536,t=3,p=4$qWDGK0tIndImSNcRfESAgQ$xnMU1+7MJ2/eBTYmAFfCDQRS5nBGFqagJ1ncU/jkkDg","patient","{""lowBloodPressure"":false,""highBloodPressure"":true,""dialysisGrowthAdjustment"":false,""fluidOverloadHigh"":true,""fluidOverloadWatch"":false,""effluentVolume"":true,""protein"":true}","{}",male,180.2
-3,"Dr. Smith","drsmith@example.com","$argon2id$v=19$m=65536,t=3,p=4$3e4wRbupvqcfUHLEGDEcMQ$Ru4hTyEcVho3WsYK7UHZ7p6QUQBdwoAC3eI04L/RYpw","provider","{}","{1,2,6}",male,175.0
+1,"Alice","alice@example.com","$argon2id$v=19$m=65536,t=3,p=4$g7CzL0siiYqy0UdLlzLsuQ$mM/wGHFIq83Gm/bteVs/BSOJ2VOLFIP/xBVwCfv4quw","patient","{""lowBloodPressure"":false,""highBloodPressure"":true,""dialysisGrowthAdjustment"":false,""fluidOverloadHigh"":true,""fluidOverloadWatch"":false,""effluentVolume"":true,""protein"":true}","{}",female,165.5,1990-01-01
+2,"Bob","bob@example.com","$argon2id$v=19$m=65536,t=3,p=4$qWDGK0tIndImSNcRfESAgQ$xnMU1+7MJ2/eBTYmAFfCDQRS5nBGFqagJ1ncU/jkkDg","patient","{""lowBloodPressure"":false,""highBloodPressure"":true,""dialysisGrowthAdjustment"":false,""fluidOverloadHigh"":true,""fluidOverloadWatch"":false,""effluentVolume"":true,""protein"":true}","{}",male,180.2,1985-05-15
+3,"Dr. Smith","drsmith@example.com","$argon2id$v=19$m=65536,t=3,p=4$3e4wRbupvqcfUHLEGDEcMQ$Ru4hTyEcVho3WsYK7UHZ7p6QUQBdwoAC3eI04L/RYpw","provider","{}","{1,2,6}",male,175.0,1975-09-20
 \.
 
 -- bump users sequence

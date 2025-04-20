@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys
 import os
 import logging
@@ -27,46 +28,47 @@ logger.info("Database tables verified.")
 ph = PasswordHasher()
 db: Session = SessionLocal()
 
-# ---------------------------
-# Step 1: Create Test Users
-# ---------------------------
+# Sample users to seed
 users = [
-    {"name": "Alice", "email": "alice@example.com", "password": "password123", "role": "patient", "patients": {},
-     "sex": "female", "height": 165.5,
-     "notifications": {
-         "lowBloodPressure": False,
-         "highBloodPressure": True,
-         "dialysisGrowthAdjustment": False,
-         "fluidOverloadHigh": True,
-         "fluidOverloadWatch": False,
-         "effluentVolume": True,
-         "protein": True
-     }},
-    {"name": "Bob", "email": "bob@example.com", "password": "password123", "role": "patient", "patients": {},
-     "sex": "male", "height": 180.2,
-     "notifications": {
-         "lowBloodPressure": True,
-         "highBloodPressure": False,
-         "dialysisGrowthAdjustment": True,
-         "fluidOverloadHigh": False,
-         "fluidOverloadWatch": True,
-         "effluentVolume": False,
-         "protein": True
-     }},
-    # For a provider, assume `patients` is a set of patient IDs.
-    {"name": "Dr. Smith", "email": "drsmith@example.com", "password": "password123", "role": "provider",
-     "patients": {1, 2, 6}, "sex": "male", "height": 175.0,
-     "notifications": {
-         "lowBloodPressure": True,
-         "highBloodPressure": True,
-         "dialysisGrowthAdjustment": False,
-         "fluidOverloadHigh": True,
-         "fluidOverloadWatch": True,
-         "effluentVolume": False,
-         "protein": False
-     }},
+    {
+        "name": "Alice",
+        "email": "alice@example.com",
+        "password": "password123",
+        "role": "patient",
+        "sex": "female",
+        "height": 165.5,
+        "birthdate": "1990-01-01",
+        "notifications": {
+            "lowBloodPressure": False,
+            "highBloodPressure": True,
+            "dialysisGrowthAdjustment": False,
+            "fluidOverloadHigh": True,
+            "fluidOverloadWatch": False,
+            "effluentVolume": True,
+            "protein": True
+        }
+    },
+    {
+        "name": "Bob",
+        "email": "bob@example.com",
+        "password": "password123",
+        "role": "patient",
+        "sex": "male",
+        "height": 180.2,
+        "birthdate": "1985-05-15",
+        "notifications": {
+            "lowBloodPressure": True,
+            "highBloodPressure": False,
+            "dialysisGrowthAdjustment": True,
+            "fluidOverloadHigh": False,
+            "fluidOverloadWatch": True,
+            "effluentVolume": False,
+            "protein": True
+        }
+    }
 ]
 
+# Seed users
 for user in users:
     existing_user = db.query(User).filter(User.email == user["email"]).first()
     if existing_user:
@@ -74,73 +76,78 @@ for user in users:
         continue
 
     hashed_password = ph.hash(user["password"])
+    # Generate a random birth date for ages between 2 and 17 years
+    random_birth_date = datetime.now(timezone.utc) - timedelta(
+        days=random.randint(2 * 365, 17 * 365)
+    )
     db_user = User(
         name=user["name"],
         email=user["email"],
         password=hashed_password,
         role=user["role"],
         sex=user["sex"],
-        height=user["height"]
+        height=user["height"],
+        birth_date=user.get("birthdate", random_birth_date),
+        notifications=user.get("notifications", {}),
+        patients=list(user.get("patients", []))
     )
     db.add(db_user)
 
 try:
     db.commit()
     logger.info("Sample users added successfully!")
-
-    # Reset the sequence for users_id_seq
+    # Reset users sequence to next max+1
     db.execute(
-        text("SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1) + 1, false);")
+        text(
+            "SELECT setval('public.users_id_seq', COALESCE((SELECT MAX(id) FROM public.users), 1) + 1, true);"
+        )
     )
     db.commit()
     logger.info("Users sequence reset successfully.")
 except IntegrityError as e:
     db.rollback()
-    logger.error("Error inserting sample users:")
     logger.error(e)
 except Exception as e:
     db.rollback()
-    logger.error("Failed to reset users_id_seq sequence:")
     logger.error(e)
 
-# ---------------------------------------
-# Step 2: Create Random Dialysis Sessions
-# ---------------------------------------
-patients = db.query(User).filter(User.role == "patient").all()
-if not patients:
-    logger.warning("No patient records found. Skipping dialysis session insertion.")
-else:
-    for patient in patients:
+# Only seed dialysis sessions if none exist yet
+if db.query(DialysisSession).count() == 0:
+    # Determine starting session_id to avoid duplicates
+    starting_session_id = db.query(func.max(DialysisSession.session_id)).scalar() or 0
+    session_id_counter = starting_session_id
+
+    # Seed dialysis sessions for each patient in our users list
+    seeded_patient_ids = [db.query(User).filter(User.email == u["email"]).first().id for u in users]
+    for patient_id in seeded_patient_ids:
         inserted_sessions_count = 0
-        attempts = 0  # avoid infinite loops if duplicates keep occurring.
+        attempts = 0
         while inserted_sessions_count < 5 and attempts < 10:
             attempts += 1
             session_type = random.choice(["pre", "post"])
-            session_id = random.randint(1, 1000)
+            # Use incremental session_id to guarantee uniqueness
+            session_id_counter += 1
+            session_id = session_id_counter
+
             weight = round(random.uniform(50, 80), 1)
             diastolic = random.randint(70, 90)
             systolic = random.randint(110, 130)
             effluent_volume = round(random.uniform(1.5, 3.0), 2)
-            # Pick a random date within the past 30 days.
             session_date = datetime.now(timezone.utc) - timedelta(days=random.randint(1, 30))
             session_duration = f"{random.randint(1, 4)} hours"
             protein = round(random.uniform(0.1, 1.0), 2)
 
-            # Check for an existing session on the same day and with the same session type.
-            # We use func.date() to compare only the date part.
             existing = db.query(DialysisSession).filter(
-                DialysisSession.patient_id == patient.id,
+                DialysisSession.patient_id == patient_id,
                 DialysisSession.session_type == session_type,
                 func.date(DialysisSession.session_date) == session_date.date()
             ).first()
 
             if existing:
-                logger.info(
-                    f"Session for patient {patient.id} on {session_date.date()} ({session_type}) already exists. Skipping this attempt.")
                 continue
 
             new_session = DialysisSession(
-                patient_id=patient.id,
+                patient_id=patient_id,
                 session_type=session_type,
                 session_id=session_id,
                 weight=weight,
@@ -157,21 +164,23 @@ else:
     try:
         db.commit()
         logger.info("Sample dialysis sessions added successfully!")
-    except IntegrityError as e:
-        db.rollback()
-        logger.error("Error inserting dialysis sessions:")
-        logger.error(e)
-
-    # Optional: Reset the sequence so that the next generated id is higher than the current max.
-    try:
+        # Reset dialysis_sessions sequence to next max(id)+1
         db.execute(
-            text("SELECT setval('dialysis_sessions_id_seq', COALESCE((SELECT MAX(id) FROM dialysis_sessions), 0))"))
+            text(
+                "SELECT setval('public.dialysis_sessions_id_seq', COALESCE((SELECT MAX(id) FROM public.dialysis_sessions), 1) + 1, true);"
+            )
+        )
         db.commit()
         logger.info("Dialysis sessions sequence reset successfully.")
+    except IntegrityError as e:
+        db.rollback()
+        logger.error(e)
     except Exception as e:
         db.rollback()
-        logger.error("Failed to reset dialysis_sessions_id_seq sequence:")
         logger.error(e)
+else:
+    logger.info("Dialysis sessions already exist; skipping session seeding.")
 
+# Close DB session
 db.close()
 logger.info("Database session closed successfully.")

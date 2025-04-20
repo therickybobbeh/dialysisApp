@@ -1,3 +1,5 @@
+from datetime import date
+
 from sqlalchemy.orm import Session
 from app.db.models.user import User
 from app.db.session import get_db
@@ -21,7 +23,8 @@ def insert_single_user(db: Session):
             "protein": True
         },
         sex='female',
-        height=165.5
+        height=165.5,
+        birth_date=date.fromisoformat('2020-01-01')
     )
     db.add(user)
     db.commit()
