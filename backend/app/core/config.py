@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     RUN_SEEDER: bool = os.getenv("RUN_SEEDER", "true").lower() == "true"
 
     # HAPI FHIR Server Base url
-    HAPI_FHIR_BASE_URL: str = os.getenv("HAPI_BASE_URL", "http://localhost:8080/fhir/")
+    HAPI_FHIR_BASE_URL: str = os.getenv("HAPI_BASE_URL", "http://hapi:8080/fhir/")
 
     class Config:
         env_file = ".env"
