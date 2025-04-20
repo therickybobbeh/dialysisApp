@@ -75,6 +75,8 @@ services:
     volumes:
       - ./data:/hapi_fhir/data
     restart: always
+    networks:
+      - app_network
 
 volumes:
   db-data:
