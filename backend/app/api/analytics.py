@@ -2,7 +2,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple, List
 
 from app.db.session import get_db
 from app.db.models.dialysis import DialysisSession
