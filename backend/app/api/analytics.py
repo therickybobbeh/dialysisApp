@@ -1,7 +1,7 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, Dict, Tuple, List
 
 from app.db.session import get_db
@@ -87,7 +87,7 @@ BP_REFERENCE = {
 # selected smoothed stature percentiles in centimeters, by sex and age
 HEIGHT_REFERENCE = {
     "male": {
-        "1-3": [80.0, 91.9, 103.4],    # 5th, 50th, 95th percentiles
+        "1-3": [80.0, 91.9, 103.4],  # 5th, 50th, 95th percentiles
         "4-6": [99.9, 112.2, 124.4],
         "7-10": [119.2, 133.3, 147.4],
         "11-14": [142.2, 160.7, 179.0],
@@ -101,6 +101,7 @@ HEIGHT_REFERENCE = {
         "15-17": [154.2, 163.7, 173.6]
     }
 }
+
 
 def determine_height_percentile(height: float, age: int, gender: str) -> str:
     """Determine height percentile category (short, medium, tall) based on height, age, and gender"""
@@ -134,6 +135,7 @@ def determine_height_percentile(height: float, age: int, gender: str) -> str:
     else:
         return "tall"  # Above 95th percentile
 
+
 def get_bp_reference_values(age: int, gender: str, height: float) -> Dict[str, Tuple[int, int]]:
     """Get blood pressure reference values based on age, gender, and height"""
     gender = gender.lower()
@@ -157,6 +159,7 @@ def get_bp_reference_values(age: int, gender: str, height: float) -> Dict[str, T
     height_category = determine_height_percentile(height, age, gender)
 
     return BP_REFERENCE[gender][age_range][height_category]
+
 
 def analyze_blood_pressure(pre_systolic, pre_diastolic, post_systolic, post_diastolic, age, gender, height) -> Dict[
     str, bool]:
@@ -191,6 +194,7 @@ def analyze_weight(pre_weight: float, post_weight: float, edw: float, uf_volume:
         "dialysisGrowthAdjustment": pre_edw_diff_percent > 3
     }
 
+
 def get_latest_edw(patient_id: int, db: Session) -> float:
     """
     Get the patient's latest Estimated Dry Weight (EDW) from their records.
@@ -199,11 +203,13 @@ def get_latest_edw(patient_id: int, db: Session) -> float:
     """
     # Try to get the latest post-dialysis session weight
     # Return a default weight if no data is available
-    latest_session = db.query(DialysisSession)\
-        .filter(DialysisSession.patient_id == patient_id)\
-        .order_by(DialysisSession.session_date.desc())\
+    latest_session = db.query(DialysisSession).filter(
+        DialysisSession.patient_id == patient_id,
+        DialysisSession.session_type == 'post'
+    ).order_by(DialysisSession.session_date.desc()) \
         .first()
-    return latest_session.edw if latest_session else 0.0
+    return latest_session.weight if latest_session else 0.0
+
 
 # todo: future work could include analyzing uf volume based on patient weight and session time and set alerts if it is, min expected volume or above max expected volume
 # todo: we need to map the pre and post sessions. the db changed a bit
@@ -254,26 +260,43 @@ def get_user_notifications(
         if sessions:
             latest_edw = get_latest_edw(target_user_id, db)
             latest_session = sessions[0]  # Most recent session
+            latest_pre_session = db.query(DialysisSession).filter(
+                DialysisSession.patient_id == target_user_id,
+                DialysisSession.session_type == 'pre'
+            ).order_by(DialysisSession.session_date.desc()) \
+                .first()
 
+            latest_post_session = db.query(DialysisSession).filter(
+                DialysisSession.patient_id == target_user_id,
+                DialysisSession.session_type == 'post'
+            ).order_by(DialysisSession.session_date.desc()) \
+                .first()
+            # get bday
+            birth_date = target_user.birth_date
+            today = date.today()
+            age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
             # Blood pressure analysis
             notifications.update(analyze_blood_pressure(
-                latest_session.pre_systolic,
-                latest_session.pre_diastolic,
-                latest_session.post_systolic,
-                latest_session.post_diastolic,
-                target_user.age,
-                target_user.gender,
+                latest_pre_session.systolic,
+                latest_pre_session.diastolic,
+                latest_post_session.systolic,
+                latest_post_session.diastolic,
+                age,
+                target_user.sex,
                 target_user.height
             ))
 
             # Weight analysis
             weight_notifications = analyze_weight(
-                latest_session.pre_weight,
-                latest_session.post_weight,
+                latest_pre_session.weight,
+                latest_post_session.weight,
                 latest_edw,
-                latest_session.uf_volume
+                latest_post_session.effluent_volume
             )
             notifications.update(weight_notifications)
+
+            target_user.notifications = notifications
+            db.commit()
 
         return notifications
 
@@ -284,10 +307,10 @@ def get_user_notifications(
 
 @router.put("/notifications")
 def update_user_notifications(
-    notifications: Dict,
-    user_id: Optional[int] = None,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user)
+        notifications: Dict,
+        user_id: Optional[int] = None,
+        db: Session = Depends(get_db),
+        user: User = Depends(get_current_user)
 ) -> Dict:
     """Update notifications for the logged-in user or a specific user if the role is provider."""
     try:
