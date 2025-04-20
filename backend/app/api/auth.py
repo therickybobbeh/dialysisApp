@@ -50,6 +50,19 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
             birth_date=user.birth_date,
         )
         db.add(db_user)
+        # TODO: add logic to pick providers
+        doctor_email = "drsmith@example.com"
+        doctor = db.query(User).filter(User.email == doctor_email).first()
+
+        if doctor:
+            if doctor.patients is None:
+                doctor.patients = set()
+            else:
+                doctor.patients = set(doctor.patients)
+            doctor.patients.add(db_user.id)
+            db.commit()
+            logger.info(f"Added patient {db_user.id} to Dr. {doctor.name}'s patient list.")
+
         db.commit()
         db.refresh(db_user)
     except Exception as db_err:

@@ -1,3 +1,6 @@
+from datetime import datetime
+from typing import Optional, List
+
 import httpx
 from fhir.resources.R4B.patient import Patient
 from fhir.resources.R4B.procedure import Procedure
@@ -9,6 +12,7 @@ from fhir.resources.R4B.quantity import Quantity
 from fhir.resources.R4B.bundle import Bundle
 from fhir.resources.R4B.humanname import HumanName
 from app.core.config import settings
+from app.helpers.date_time import normalize_to_utc_day_bounds
 
 HAPI_FHIR_BASE_URL = settings.HAPI_FHIR_BASE_URL
 HAPI_FHIR_HEADERS={"Accept": "application/fhir+json", "Content-Type": "application/fhir+json"}
@@ -77,29 +81,39 @@ async def fhir_get_patient_resource(patient_id):
         return obj
 
 
-async def fhir_search_dialysis_sessions(patient_id=None, start_date=None, end_date=None, limit=1000):
+
+async def fhir_search_dialysis_sessions(
+    patient_id: Optional[int] = None,
+    start_date: Optional[datetime] = None,
+    end_date:   Optional[datetime] = None,
+    limit:      int            = 1000
+) -> List[dict]:
     async with _fhir_get_async_client() as hapi_client:
-        search_params = {
-            "_sort": "-date",
-            "_count": limit,
-            "_pretty": True
-        }
+        # normalize your bounds once
+        start_dt, end_dt = normalize_to_utc_day_bounds(start_date, end_date)
+
+        # build a list of tuples so you can send both ge… and le… keys
+        params = [
+            ("_sort", "-date"),
+            ("_count", str(limit)),
+            ("_pretty", "true"),
+        ]
         if patient_id is not None:
-            search_params["subject"] = f"Patient/{HAPI_FHIR_PATIENT_ID_BASE + str(patient_id)}"
-        if start_date is not None:
-            search_params["date"] = f"ge{str(start_date)}"
-        if end_date is not None:
-            search_params["date"] = f"le{str(end_date)}"
-        response = await hapi_client.get(
-            "Procedure?",
-            params=search_params
-        )
+            params.append(("subject", f"Patient/{HAPI_FHIR_PATIENT_ID_BASE}{patient_id}"))
+        if start_dt:
+            params.append(("date", f"ge{start_dt.isoformat()}"))
+        if end_dt:
+            params.append(("date", f"le{end_dt.isoformat()}"))
+
+        # no trailing '?' on the path
+        response = await hapi_client.get("Procedure", params=params)
         response.raise_for_status()
+
         bundle_rsc = Bundle(**response.json())
-        dialysis_sessions = []
-        for entry in bundle_rsc.entry:
-            dialysis_sessions.append(_fhir_parse_dialysis_session_resource(entry.resource))
-        return dialysis_sessions
+        sessions = []
+        for entry in (bundle_rsc.entry or []):
+            sessions.append(_fhir_parse_dialysis_session_resource(entry.resource))
+        return sessions
 
 
 async def fhir_delete_dialysis_session_resource(session_id):
@@ -225,19 +239,51 @@ async def fhir_get_dialysis_session_resource(session_id):
 
 
 def _fhir_parse_dialysis_session_resource(procedure_rsc):
-    dialysis_session_ext = procedure_rsc.extension[0]
-    dialysis_session_ext_obj = {}
-    for entry in dialysis_session_ext.extension:
-        if entry.url == "session_type":
-            dialysis_session_ext_obj[entry.url] = entry.valueString
+    """
+    Parse a Procedure resource's dialysis-session extension into a dict,
+    converting quantities and strings safely.
+    """
+    # Find the root extension
+    ext_root = None
+    for ext in getattr(procedure_rsc, 'extension', []) or []:
+        if ext.url == 'dialysis-session':
+            ext_root = ext
+            break
+    if not ext_root:
+        return {}
+    data = {}
+    for sub in ext_root.extension:
+        key = sub.url
+        if hasattr(sub, 'valueString') and sub.valueString is not None:
+            data[key] = sub.valueString
         else:
-            dialysis_session_ext_obj[entry.url] = float(entry.valueQuantity.value)
-    obj = {
-        "patient_id": procedure_rsc.subject.reference[len(f"Patient/{HAPI_FHIR_PATIENT_ID_BASE}"):],
-        "session_id": procedure_rsc.id[len(HAPI_FHIR_PROCEDURE_ID_BASE):], 
-        **dialysis_session_ext_obj
+            qty = getattr(sub, 'valueQuantity', None)
+            val = getattr(qty, 'value', None) if qty else None
+            data[key] = float(val) if val is not None else None
+    # Extract IDs
+    raw_sub = getattr(procedure_rsc.subject, 'reference', '')
+    raw_id = getattr(procedure_rsc, 'id', '')
+    try:
+        pid = int(raw_sub.split(f"Patient/{HAPI_FHIR_PATIENT_ID_BASE}")[-1])
+    except:
+        pid = None
+    try:
+        sid = int(raw_id.split(HAPI_FHIR_PROCEDURE_ID_BASE)[-1])
+    except:
+        sid = None
+
+    # Extract session_date
+    session_date = getattr(procedure_rsc, 'performedDateTime', None)
+
+    # Return the parsed data
+    return {
+        'patient_id': pid,
+        'session_id': sid,
+        'id': sid,  # Map session_id to id
+        'session_date': session_date,
+        **data
     }
-    return obj
+
 
 
 ######################################################################################################
