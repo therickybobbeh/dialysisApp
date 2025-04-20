@@ -6,7 +6,7 @@ Peritoneal Dialysis (PD) management application
 
 
 1. Project Overview
-The Peritoneal Dialysis (PD) Management App is designed to help patients and providers monitor and manage peritoneal dialysis treatment. The application allows patients to log their health data, provides analytics for trend monitoring, and enables providers to make informed treatment decisions.
+The Peritoneal Dialysis (PD) Management App is designed to help patients and providers monitor and manage peritoneal dialysis treatment. The application allows patients to log their health data, provides analytics for trend monitoring, and enables providers to make informed treatment decisions based on notifications.
 
 1.1 Features
 
@@ -125,11 +125,23 @@ to stop the container run:
 docker-compose down
 
 ```
-![Docker containers](https://github.gatech.edu/lalkhalil3/PeritonealDialysisApp/assets/90599/08b4ebd4-c7df-4554-a210-911985eb7e31)
+![Docker containers locally](https://github.gatech.edu/lalkhalil3/PeritonealDialysisApp/assets/90599/08b4ebd4-c7df-4554-a210-911985eb7e31)
 
 # Swagger Specs: http://localhost:8004/docs#/
 # Backend APIs URL: http://localhost:8004/
 # Frontend- React URL: http://localhost:3000/
+
+# App URLs on the debian deployment server:
+
+- Frontend
+http://kidnekt.igortaskovski.com/login
+ 
+- Backend
+https://kidnekt-api.igortaskovski.com/docs
+ 
+- Hapi FHIR
+https://hapi.igortaskovski.com/
+
 
 
 # Architecture flow diagram:
@@ -143,7 +155,7 @@ flowchart TD
         LoginForm[Login Form]
         Dashboard[Dashboard]
         DialysisForm[Dialysis Form]
-        UI[React Frontend - Next.js]
+        UI[Angular Frontend]
 
         LoginForm -->|POST /auth/token| UI
         Dashboard -->|GET /dialysis/analytics| UI
@@ -151,7 +163,7 @@ flowchart TD
     end
 
     %% FRONTEND CONTAINER
-    subgraph Frontend["Frontend - React Docker Container"]
+    subgraph Frontend["Frontend - Angular Docker Container"]
         UI
     end
 
@@ -160,11 +172,13 @@ flowchart TD
         API[FastAPI App]
         Auth[Auth Routes - /auth/token and /auth/register]
         Dialysis[Dialysis Routes - /dialysis/sessions and /analytics]
+        FHIR[New FHIR Routes - /fhir/patients and /fhir/resources]
         Seeder[Seeder Script]
         Alembic[Alembic Migrations]
 
         API --> Auth
         API --> Dialysis
+        API --> FHIR
         API --> Seeder
         API --> Alembic
     end
@@ -175,28 +189,42 @@ flowchart TD
         Tables[users, dialysis_sessions, food_intake]
     end
 
+    %% FHIR SERVER CONTAINER
+    subgraph FHIRServer["HAPI FHIR Server Docker Container"]
+        HappiFHIR[(HAPI FHIR Database)]
+        PatientResource[Patient Resources]
+    end
+
     %% CONNECTIONS
     UI -->|Fetch token, store JWT and user_id| Auth
     UI -->|Submit dialysis data| Dialysis
     UI -->|Fetch analytics and live updates| Dialysis
+    UI -->|Post / Fetch Patient Data| FHIR
+
     Dialysis -->|SQLAlchemy Queries| DB
     Auth -->|JWT creation and validation| DB
     Seeder -->|Insert dummy data| DB
     Alembic -->|Run migrations| DB
+
+    FHIR -->|POST / GET FHIR Resources| HappiFHIR
+    PatientResource --> HappiFHIR
 
     %% DOCKER COMPOSE
     subgraph DockerCompose["docker-compose"]
         frontendService[frontend service]
         backendService[backend service]
         dbService[postgres service]
+        fhirService[HAPI FHIR server service]
 
         frontendService --> Frontend
         backendService --> Backend
         dbService --> Database
+        fhirService --> FHIRServer
 
         frontendService --> backendService
-        backendService --> dbService
+        backendService --> fhirService
     end
+
 
 
 ```
