@@ -23,6 +23,8 @@ COPY pd_management.sql /app/pd_management.sql
 #  Copy the seeder script separately
 COPY backend/scripts/seeder.py /app/backend/scripts/seeder.py
 
+COPY backend/scripts/seed_sample_patients.py /app/backend/scripts/seed_sample_patients.py
+
 #  Copy the entrypoint script
 COPY backend/scripts/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh  # Make it executable

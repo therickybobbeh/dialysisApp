@@ -25,5 +25,9 @@ else
   fi
 fi
 
+echo " Running sample patient record init..."
+# adds all sample patient data for testing alerts/notifications
+python scripts/seed_sample_patients.py || echo " sample patient seeder failed, continuing..."
+
 echo " Starting FastAPI server..."
 exec uvicorn app.api.main:app --host 0.0.0.0 --port 8004 --reload --log-level debug

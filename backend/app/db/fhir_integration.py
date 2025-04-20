@@ -23,6 +23,8 @@ HAPI_FHIR_PROCEDURE_ID_BASE="KIDNEKT-PROCEDURE-ID-"
 def _fhir_get_async_client():
     return httpx.AsyncClient(base_url=HAPI_FHIR_BASE_URL, headers=HAPI_FHIR_HEADERS)
 
+def _fhir_get_sync_client():
+    return httpx.Client(base_url=HAPI_FHIR_BASE_URL, headers=HAPI_FHIR_HEADERS)
 
 def _fhir_create_patient_resource_ext(height):
     return Extension(
@@ -34,6 +36,33 @@ def _fhir_create_patient_resource_ext(height):
             code="in"
         )
     )
+
+
+def sync_fhir_create_patient_resource(patient_id, name, birth_date, gender, height):
+    '''
+    gender: "male" | "female" | "other" | "unknown"
+    birth_date: datetime.date object or string formtted as yyyy-mm-dd
+    name: <first name> <last name>
+    '''
+    with _fhir_get_sync_client() as hapi_client:
+        given_name, family_name = name.split(" ")
+        patient_rsc = Patient(
+            id=HAPI_FHIR_PATIENT_ID_BASE + str(patient_id),
+            name=[HumanName(
+                given=[given_name],
+                family=family_name
+            )],
+            active=True,
+            gender=gender,
+            birthDate=str(birth_date),
+            extension=[_fhir_create_patient_resource_ext(height)]
+        )
+        response = hapi_client.put(
+            f"Patient/{HAPI_FHIR_PATIENT_ID_BASE + str(patient_id)}",
+            content=patient_rsc.model_dump_json()
+        )
+        response.raise_for_status()
+        return response.json()
 
 
 async def fhir_create_patient_resource(patient_id, name, birth_date, gender, height):
