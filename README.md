@@ -41,6 +41,12 @@ o	PostgreSQL database.
 
 o	Dockerized deployment.
 
+•	Mockups:
+
+o	Mockups were designed in Figma
+
+o	[Figma URL](https://www.figma.com/design/R1LCcKlYmd92tRj2N4uvKz/UI-dialysis-project?node-id=5490-2&t=Usotm4XN21rLQloN-1)
+
 2. API Contract
 ![current APIs Specs](https://github.gatech.edu/lalkhalil3/PeritonealDialysisApp/assets/90599/01786033-d60f-4be2-8a29-8f7cb3a900f0)
 
