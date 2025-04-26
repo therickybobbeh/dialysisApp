@@ -58,4 +58,4 @@ backend/logs
 # -- for ui --
 /dialysis-app-ui/node_modules/*
 /dialysis-app-ui/.angular/*
-backend/app/api/__pycache__/*
+/backend/app/api/__pycache__/*
