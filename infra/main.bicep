@@ -6,7 +6,7 @@
 param environmentName string = 'dev'
 
 @description('The Azure region for all resources')
-param location string = 'eastus'
+param location string = 'eastus2'
 
 @description('The SKU for Azure Container Registry')
 param acrSku string = 'Basic'
@@ -29,7 +29,7 @@ param postgresSku string = 'Standard_B1ms'
 param postgresStorageSize int = 32
 
 @description('The PostgreSQL version')
-param postgresVersion string = '13'
+param postgresVersion string = '14'
 
 @description('Application frontend and backend container names')
 param backendContainerAppName string = 'pd-management-backend'
