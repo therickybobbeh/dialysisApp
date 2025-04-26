@@ -11,3 +11,11 @@ psycopg2-binary>=2.9.9  # PostgreSQL database driver
 alembic==1.10.3 # for data migrations
 fhir.resources==8.0.0 # for easier fhir resource construction and validation
 httpx==0.28.1 # for async RESTful client actions
+
+# Azure Integration Packages
+azure-identity>=1.15.0  # For Azure Authentication and Managed Identity
+opencensus-ext-azure>=1.1.12  # For Application Insights integration
+opencensus-ext-logging>=0.1.0  # For logging integration with Application Insights
+azure-keyvault-secrets>=4.7.0  # For Azure Key Vault integration
+tenacity>=8.2.3  # For retry logic
+azure-monitor-opentelemetry>=1.0.0  # For Azure Monitor OpenTelemetry integration

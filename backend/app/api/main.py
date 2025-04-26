@@ -12,6 +12,9 @@ from app.api.provider import router as provider_router
 from app.db.session import Base, engine
 from app.core.logging_config import logger
 from datetime import datetime
+from sqlalchemy.orm import Session
+from typing import Annotated
+import os
 
 #  Ensure database tables exist
 Base.metadata.create_all(bind=engine)
@@ -37,9 +40,52 @@ app.include_router(provider_router)
 
 
 #  Health Check Route
-@app.get("/healthcheck", tags=["App health check"])
-def health_check():
-    return {"message": "Backend is running!"}
+@app.get("/health", status_code=200, tags=["Health"])
+async def health_check(db: Annotated[Session, Depends(get_db)]):
+    """
+    Health check endpoint for container health probes.
+    This endpoint checks the application's health including database connectivity.
+    
+    Returns:
+        dict: Health check status
+    """
+    health_data = {
+        "status": "healthy",
+        "version": os.getenv("APP_VERSION", "1.0.0"),
+        "timestamp": datetime.now().isoformat(),
+        "checks": {
+            "app": "healthy"
+        }
+    }
+    
+    # Check database connectivity if enabled
+    if settings.HEALTH_CHECK_INCLUDE_DB:
+        try:
+            # Execute simple query to verify DB connection
+            db.execute("SELECT 1")
+            health_data["checks"]["database"] = "connected"
+        except Exception as e:
+            health_data["status"] = "unhealthy"
+            health_data["checks"]["database"] = str(e)
+    
+    # Check Application Insights if enabled
+    if settings.ENABLE_APP_INSIGHTS:
+        try:
+            if settings.APPLICATION_INSIGHTS_CONNECTION_STRING:
+                health_data["checks"]["app_insights"] = "configured"
+            else:
+                health_data["checks"]["app_insights"] = "missing connection string"
+        except Exception as e:
+            health_data["checks"]["app_insights"] = str(e)
+    
+    # Return 500 status code if unhealthy
+    if health_data["status"] != "healthy":
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content=health_data
+        )
+    
+    return health_data
 
 #  Global Exception Handling
 @app.exception_handler(Exception)

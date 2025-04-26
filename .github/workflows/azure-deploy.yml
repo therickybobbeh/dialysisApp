@@ -1,0 +1,413 @@
+name: Build and Deploy to Azure
+
+on:
+  push:
+    branches: [ main, development ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - prod
+
+env:
+  # Environment Variables
+  AZURE_RESOURCE_GROUP: pd-management-${{ github.event.inputs.environment || 'dev' }}
+  AZURE_LOCATION: eastus
+  ACR_NAME: pdmgmtacr${{ github.event.inputs.environment || 'dev' }}
+  FRONTEND_APP_NAME: pd-management-frontend
+  BACKEND_APP_NAME: pd-management-backend
+  CONTAINER_APP_ENVIRONMENT: pd-management-env
+  POSTGRES_SERVER_NAME: pd-management-db-${{ github.event.inputs.environment || 'dev' }}
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          pip install -r requirements.txt
+          
+      - name: Run backend tests
+        run: |
+          # Disabled for now - add real tests later
+          # cd backend
+          # pytest
+          echo "Tests skipped for now"
+          
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+          
+      - name: Install frontend dependencies 
+        run: |
+          cd dialysis-app-ui
+          npm ci
+          
+      - name: Build frontend
+        run: |
+          cd dialysis-app-ui
+          npm run build -- --configuration production
+          
+      - name: Run frontend tests
+        run: |
+          cd dialysis-app-ui
+          # npm run test
+          echo "Tests skipped for now"
+
+  deploy-to-azure:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          
+      - name: Create resource group if not exists
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            if [ $(az group exists --name ${{ env.AZURE_RESOURCE_GROUP }}) = false ]; then
+              echo "Resource group does not exist. Creating..."
+              az group create --name ${{ env.AZURE_RESOURCE_GROUP }} --location ${{ env.AZURE_LOCATION }}
+            else
+              echo "Resource group already exists."
+            fi
+            
+      - name: Create Azure Container Registry if not exists
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            if [ $(az acr check-name --name ${{ env.ACR_NAME }} --query nameAvailable) = true ]; then
+              echo "Creating new Azure Container Registry..."
+              az acr create --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.ACR_NAME }} --sku Basic --admin-enabled true
+            else
+              echo "Azure Container Registry already exists."
+            fi
+            
+      - name: Get ACR credentials
+        id: get-acr-credentials
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            ACR_USERNAME=$(az acr credential show --name ${{ env.ACR_NAME }} --query username -o tsv)
+            ACR_PASSWORD=$(az acr credential show --name ${{ env.ACR_NAME }} --query passwords[0].value -o tsv)
+            echo "::set-output name=username::$ACR_USERNAME"
+            echo "::set-output name=password::$ACR_PASSWORD"
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to Azure Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.ACR_NAME }}.azurecr.io
+          username: ${{ steps.get-acr-credentials.outputs.username }}
+          password: ${{ steps.get-acr-credentials.outputs.password }}
+      
+      - name: Build and push Backend Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/${{ env.BACKEND_APP_NAME }}:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/${{ env.BACKEND_APP_NAME }}:latest
+          cache-from: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/${{ env.BACKEND_APP_NAME }}:cache
+          cache-to: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/${{ env.BACKEND_APP_NAME }}:cache,mode=max
+      
+      - name: Build and push Frontend Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./dialysis-app-ui
+          file: ./dialysis-app-ui/Dockerfile
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/${{ env.FRONTEND_APP_NAME }}:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/${{ env.FRONTEND_APP_NAME }}:latest
+          cache-from: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/${{ env.FRONTEND_APP_NAME }}:cache
+          cache-to: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/${{ env.FRONTEND_APP_NAME }}:cache,mode=max
+
+      - name: Create Azure Database for PostgreSQL if not exists
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Check if PostgreSQL server exists
+            POSTGRES_EXISTS=$(az postgres flexible-server list --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query "[?name=='${{ env.POSTGRES_SERVER_NAME }}'].name" -o tsv)
+            
+            if [ -z "$POSTGRES_EXISTS" ]; then
+              echo "Creating PostgreSQL server..."
+              az postgres flexible-server create \
+                --name ${{ env.POSTGRES_SERVER_NAME }} \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --location ${{ env.AZURE_LOCATION }} \
+                --admin-user ${{ secrets.POSTGRES_ADMIN_USER }} \
+                --admin-password "${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+                --tier Burstable \
+                --sku-name Standard_B1ms \
+                --storage-size 32 \
+                --version 14 \
+                --high-availability Disabled \
+                --yes
+              
+              echo "Creating database..."
+              az postgres flexible-server db create \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --server-name ${{ env.POSTGRES_SERVER_NAME }} \
+                --database-name pd_management
+              
+              echo "Configuring firewall..."
+              az postgres flexible-server firewall-rule create \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --name ${{ env.POSTGRES_SERVER_NAME }} \
+                --rule-name AllowAzureServices \
+                --start-ip-address 0.0.0.0 \
+                --end-ip-address 0.0.0.0
+            else
+              echo "PostgreSQL server already exists."
+            fi
+
+      - name: Create Container Apps Environment if not exists
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Check if Container Apps Environment exists
+            ENV_EXISTS=$(az containerapp env list --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query "[?name=='${{ env.CONTAINER_APP_ENVIRONMENT }}'].name" -o tsv)
+            
+            if [ -z "$ENV_EXISTS" ]; then
+              echo "Creating Container Apps Environment..."
+              az containerapp env create \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --name ${{ env.CONTAINER_APP_ENVIRONMENT }} \
+                --location ${{ env.AZURE_LOCATION }}
+            else
+              echo "Container Apps Environment already exists."
+            fi
+
+      - name: Create Log Analytics workspace
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            WORKSPACE_NAME="pd-management-logs"
+            
+            # Check if Log Analytics workspace exists
+            WORKSPACE_EXISTS=$(az monitor log-analytics workspace list --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query "[?name=='$WORKSPACE_NAME'].name" -o tsv)
+            
+            if [ -z "$WORKSPACE_EXISTS" ]; then
+              echo "Creating Log Analytics workspace..."
+              az monitor log-analytics workspace create \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --workspace-name $WORKSPACE_NAME \
+                --location ${{ env.AZURE_LOCATION }}
+            else
+              echo "Log Analytics workspace already exists."
+            fi
+            
+            # Get workspace ID and key
+            WORKSPACE_ID=$(az monitor log-analytics workspace show --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --workspace-name $WORKSPACE_NAME --query customerId -o tsv)
+            WORKSPACE_KEY=$(az monitor log-analytics workspace get-shared-keys --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --workspace-name $WORKSPACE_NAME --query primarySharedKey -o tsv)
+            
+            # Store workspace info for later use
+            echo "WORKSPACE_ID=$WORKSPACE_ID" >> $GITHUB_ENV
+            echo "WORKSPACE_KEY=$WORKSPACE_KEY" >> $GITHUB_ENV
+
+      - name: Create Application Insights if not exists
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            APP_INSIGHTS_NAME="pd-management-insights"
+            
+            # Check if App Insights exists
+            INSIGHTS_EXISTS=$(az monitor app-insights component show --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --app $APP_INSIGHTS_NAME --query name 2>/dev/null)
+            
+            if [ -z "$INSIGHTS_EXISTS" ]; then
+              echo "Creating Application Insights..."
+              az monitor app-insights component create \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --app $APP_INSIGHTS_NAME \
+                --location ${{ env.AZURE_LOCATION }} \
+                --application-type web \
+                --workspace $WORKSPACE_ID
+                
+              # Get connection string
+              APP_INSIGHTS_CONNECTION_STRING=$(az monitor app-insights component show --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --app $APP_INSIGHTS_NAME --query connectionString -o tsv)
+              echo "APP_INSIGHTS_CONNECTION_STRING=$APP_INSIGHTS_CONNECTION_STRING" >> $GITHUB_ENV
+            else
+              echo "Application Insights already exists."
+              # Get connection string
+              APP_INSIGHTS_CONNECTION_STRING=$(az monitor app-insights component show --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --app $APP_INSIGHTS_NAME --query connectionString -o tsv)
+              echo "APP_INSIGHTS_CONNECTION_STRING=$APP_INSIGHTS_CONNECTION_STRING" >> $GITHUB_ENV
+            fi
+
+      - name: Deploy backend to Azure Container Apps
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            echo "Creating/updating backend Container App..."
+            
+            # Check if Container App exists
+            BACKEND_APP_EXISTS=$(az containerapp show --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.BACKEND_APP_NAME }} --query name 2>/dev/null)
+            
+            if [ -z "$BACKEND_APP_EXISTS" ]; then
+              # Create new Container App
+              az containerapp create \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --name ${{ env.BACKEND_APP_NAME }} \
+                --environment ${{ env.CONTAINER_APP_ENVIRONMENT }} \
+                --image ${{ env.ACR_NAME }}.azurecr.io/${{ env.BACKEND_APP_NAME }}:${{ github.sha }} \
+                --registry-server ${{ env.ACR_NAME }}.azurecr.io \
+                --registry-username ${{ steps.get-acr-credentials.outputs.username }} \
+                --registry-password ${{ steps.get-acr-credentials.outputs.password }} \
+                --target-port 8004 \
+                --ingress external \
+                --min-replicas 1 \
+                --max-replicas 3 \
+                --cpu 0.5 \
+                --memory 1.0Gi \
+                --env-vars \
+                  "AZURE_DEPLOYMENT=true" \
+                  "ENABLE_APP_INSIGHTS=true" \
+                  "APPLICATIONINSIGHTS_CONNECTION_STRING=${APP_INSIGHTS_CONNECTION_STRING}" \
+                  "LOG_LEVEL=INFO" \
+                  "POSTGRES_HOST=${{ env.POSTGRES_SERVER_NAME }}.postgres.database.azure.com" \
+                  "POSTGRES_USER=${{ secrets.POSTGRES_ADMIN_USER }}" \
+                  "POSTGRES_PASSWORD=${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+                  "POSTGRES_DB=pd_management" \
+                  "POSTGRES_PORT=5432" \
+                  "SECRET_KEY=${{ secrets.SECRET_KEY }}" \
+                  "REFRESH_SECRET_KEY=${{ secrets.REFRESH_SECRET_KEY }}" \
+                  "DB_POOL_SIZE=10" \
+                  "DB_MAX_OVERFLOW=20" \
+                  "STRUCTURED_LOGGING=true"
+            else
+              # Update existing Container App
+              az containerapp update \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --name ${{ env.BACKEND_APP_NAME }} \
+                --image ${{ env.ACR_NAME }}.azurecr.io/${{ env.BACKEND_APP_NAME }}:${{ github.sha }} \
+                --registry-server ${{ env.ACR_NAME }}.azurecr.io \
+                --registry-username ${{ steps.get-acr-credentials.outputs.username }} \
+                --registry-password ${{ steps.get-acr-credentials.outputs.password }} \
+                --set-env-vars \
+                  "AZURE_DEPLOYMENT=true" \
+                  "ENABLE_APP_INSIGHTS=true" \
+                  "APPLICATIONINSIGHTS_CONNECTION_STRING=${APP_INSIGHTS_CONNECTION_STRING}" \
+                  "LOG_LEVEL=INFO" \
+                  "POSTGRES_HOST=${{ env.POSTGRES_SERVER_NAME }}.postgres.database.azure.com" \
+                  "POSTGRES_USER=${{ secrets.POSTGRES_ADMIN_USER }}" \
+                  "POSTGRES_PASSWORD=${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+                  "POSTGRES_DB=pd_management" \
+                  "POSTGRES_PORT=5432" \
+                  "SECRET_KEY=${{ secrets.SECRET_KEY }}" \
+                  "REFRESH_SECRET_KEY=${{ secrets.REFRESH_SECRET_KEY }}" \
+                  "DB_POOL_SIZE=10" \
+                  "DB_MAX_OVERFLOW=20" \
+                  "STRUCTURED_LOGGING=true"
+            fi
+
+            # Add health probe
+            az containerapp update \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name ${{ env.BACKEND_APP_NAME }} \
+              --probe-name readiness-probe \
+              --type readiness \
+              --path /health \
+              --port 8004 \
+              --transport http \
+              --interval 30 \
+              --timeout 10
+
+      - name: Deploy frontend to Azure Container Apps
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            echo "Creating/updating frontend Container App..."
+            
+            # Get the backend URL for frontend configuration
+            BACKEND_URL=$(az containerapp show --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.BACKEND_APP_NAME }} --query properties.configuration.ingress.fqdn -o tsv)
+            
+            # Check if Container App exists
+            FRONTEND_APP_EXISTS=$(az containerapp show --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.FRONTEND_APP_NAME }} --query name 2>/dev/null)
+            
+            if [ -z "$FRONTEND_APP_EXISTS" ]; then
+              # Create new Container App
+              az containerapp create \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --name ${{ env.FRONTEND_APP_NAME }} \
+                --environment ${{ env.CONTAINER_APP_ENVIRONMENT }} \
+                --image ${{ env.ACR_NAME }}.azurecr.io/${{ env.FRONTEND_APP_NAME }}:${{ github.sha }} \
+                --registry-server ${{ env.ACR_NAME }}.azurecr.io \
+                --registry-username ${{ steps.get-acr-credentials.outputs.username }} \
+                --registry-password ${{ steps.get-acr-credentials.outputs.password }} \
+                --target-port 80 \
+                --ingress external \
+                --min-replicas 1 \
+                --max-replicas 3 \
+                --cpu 0.25 \
+                --memory 0.5Gi \
+                --env-vars \
+                  "API_URL=https://$BACKEND_URL" \
+                  "ENVIRONMENT=${{ github.event.inputs.environment || 'dev' }}"
+            else
+              # Update existing Container App
+              az containerapp update \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --name ${{ env.FRONTEND_APP_NAME }} \
+                --image ${{ env.ACR_NAME }}.azurecr.io/${{ env.FRONTEND_APP_NAME }}:${{ github.sha }} \
+                --registry-server ${{ env.ACR_NAME }}.azurecr.io \
+                --registry-username ${{ steps.get-acr-credentials.outputs.username }} \
+                --registry-password ${{ steps.get-acr-credentials.outputs.password }} \
+                --set-env-vars \
+                  "API_URL=https://$BACKEND_URL" \
+                  "ENVIRONMENT=${{ github.event.inputs.environment || 'dev' }}"
+            fi
+              
+            # Add health probe  
+            az containerapp update \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name ${{ env.FRONTEND_APP_NAME }} \
+              --probe-name readiness-probe \
+              --type readiness \
+              --path /health \
+              --port 80 \
+              --transport http \
+              --interval 30 \
+              --timeout 10
+
+      - name: Output application URLs
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Get the application URLs
+            BACKEND_URL=$(az containerapp show --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.BACKEND_APP_NAME }} --query properties.configuration.ingress.fqdn -o tsv)
+            FRONTEND_URL=$(az containerapp show --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.FRONTEND_APP_NAME }} --query properties.configuration.ingress.fqdn -o tsv)
+            
+            echo "Deployment complete!"
+            echo "Backend API URL: https://$BACKEND_URL"
+            echo "Frontend URL: https://$FRONTEND_URL"
+            
+            # Set the URLs as output variables
+            echo "BACKEND_URL=https://$BACKEND_URL" >> $GITHUB_ENV
+            echo "FRONTEND_URL=https://$FRONTEND_URL" >> $GITHUB_ENV

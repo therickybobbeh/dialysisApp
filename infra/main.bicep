@@ -1,0 +1,390 @@
+// Peritoneal Dialysis Application - Azure Infrastructure
+// This file defines all the Azure resources needed for the application
+
+// Parameters with default values
+@description('The environment name (dev, test, prod)')
+param environmentName string = 'dev'
+
+@description('The Azure region for all resources')
+param location string = resourceGroup().location
+
+@description('The SKU for Azure Container Registry')
+param acrSku string = 'Basic'
+
+@description('PostgreSQL administrator login')
+@secure()
+param postgresAdminLogin string
+
+@description('PostgreSQL administrator password')
+@secure()
+param postgresAdminPassword string
+
+@description('The SKU tier for the PostgreSQL Flexible Server')
+param postgresTier string = 'Burstable'
+
+@description('The SKU name for the PostgreSQL Flexible Server')
+param postgresSku string = 'Standard_B1ms'
+
+@description('The storage size for the PostgreSQL Flexible Server in GB')
+param postgresStorageSize int = 32
+
+@description('The PostgreSQL version')
+param postgresVersion string = '14'
+
+@description('Application frontend and backend container names')
+param backendContainerAppName string = 'pd-management-backend'
+param frontendContainerAppName string = 'pd-management-frontend'
+
+@description('Minimum and maximum replicas for container apps')
+param frontendMinReplicas int = 1
+param frontendMaxReplicas int = 3
+param backendMinReplicas int = 1
+param backendMaxReplicas int = 3
+
+// Variables
+var baseName = 'pd-management-${environmentName}'
+var acrName = replace('pdmgmtacr${environmentName}', '-', '')
+var postgresServerName = '${baseName}-db'
+var containerAppEnvironmentName = '${baseName}-env'
+var logAnalyticsWorkspaceName = '${baseName}-logs'
+var appInsightsName = '${baseName}-insights'
+
+// Resource definitions
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
+  name: logAnalyticsWorkspaceName
+  location: location
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: 30
+    features: {
+      enableLogAccessUsingOnlyResourcePermissions: true
+    }
+  }
+}
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: appInsightsName
+  location: location
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logAnalyticsWorkspace.id
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Enabled'
+  }
+}
+
+resource acr 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = {
+  name: acrName
+  location: location
+  sku: {
+    name: acrSku
+  }
+  properties: {
+    adminUserEnabled: true
+    anonymousPullEnabled: false
+    dataEndpointEnabled: false
+    networkRuleBypassOptions: 'AzureServices'
+    publicNetworkAccess: 'Enabled'
+    zoneRedundancy: 'Disabled'
+  }
+}
+
+resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
+  name: postgresServerName
+  location: location
+  sku: {
+    name: postgresSku
+    tier: postgresTier
+  }
+  properties: {
+    version: postgresVersion
+    administratorLogin: postgresAdminLogin
+    administratorLoginPassword: postgresAdminPassword
+    storage: {
+      storageSizeGB: postgresStorageSize
+    }
+    backup: {
+      backupRetentionDays: 7
+      geoRedundantBackup: 'Disabled'
+    }
+    highAvailability: {
+      mode: 'Disabled'
+    }
+  }
+
+  resource database 'databases@2022-12-01' = {
+    name: 'pd_management'
+  }
+
+  resource firewallRule 'firewallRules@2022-12-01' = {
+    name: 'AllowAzureServices'
+    properties: {
+      startIpAddress: '0.0.0.0'
+      endIpAddress: '0.0.0.0'
+    }
+  }
+}
+
+resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2022-10-01' = {
+  name: containerAppEnvironmentName
+  location: location
+  properties: {
+    appLogsConfiguration: {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId: logAnalyticsWorkspace.properties.customerId
+        sharedKey: logAnalyticsWorkspace.listKeys().primarySharedKey
+      }
+    }
+  }
+}
+
+resource backendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
+  name: backendContainerAppName
+  location: location
+  properties: {
+    managedEnvironmentId: containerAppEnvironment.id
+    configuration: {
+      activeRevisionsMode: 'Single'
+      ingress: {
+        external: true
+        targetPort: 8004
+        allowInsecure: false
+        traffic: [
+          {
+            weight: 100
+            latestRevision: true
+          }
+        ]
+      }
+      registries: [
+        {
+          server: '${acrName}.azurecr.io'
+          username: acr.listCredentials().username
+          passwordSecretRef: 'acr-password'
+        }
+      ]
+      secrets: [
+        {
+          name: 'acr-password'
+          value: acr.listCredentials().passwords[0].value
+        }
+        {
+          name: 'postgres-password'
+          value: postgresAdminPassword
+        }
+      ]
+    }
+    template: {
+      containers: [
+        {
+          name: backendContainerAppName
+          image: '${acrName}.azurecr.io/${backendContainerAppName}:latest'
+          resources: {
+            cpu: '0.5'
+            memory: '1.0Gi'
+          }
+          env: [
+            {
+              name: 'AZURE_DEPLOYMENT'
+              value: 'true'
+            }
+            {
+              name: 'ENABLE_APP_INSIGHTS'
+              value: 'true'
+            }
+            {
+              name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+              value: appInsights.properties.ConnectionString
+            }
+            {
+              name: 'LOG_LEVEL'
+              value: 'INFO'
+            }
+            {
+              name: 'POSTGRES_HOST'
+              value: '${postgresServerName}.postgres.database.azure.com'
+            }
+            {
+              name: 'POSTGRES_USER'
+              value: postgresAdminLogin
+            }
+            {
+              name: 'POSTGRES_PASSWORD'
+              secretRef: 'postgres-password'
+            }
+            {
+              name: 'POSTGRES_DB'
+              value: 'pd_management'
+            }
+            {
+              name: 'POSTGRES_PORT'
+              value: '5432'
+            }
+            {
+              name: 'DB_POOL_SIZE'
+              value: '10'
+            }
+            {
+              name: 'DB_MAX_OVERFLOW'
+              value: '20'
+            }
+            {
+              name: 'STRUCTURED_LOGGING'
+              value: 'true'
+            }
+          ]
+          probes: [
+            {
+              type: 'Readiness'
+              httpGet: {
+                path: '/health'
+                port: 8004
+                scheme: 'HTTP'
+              }
+              initialDelaySeconds: 10
+              periodSeconds: 30
+              timeoutSeconds: 10
+              successThreshold: 1
+              failureThreshold: 3
+            }
+            {
+              type: 'Liveness'
+              httpGet: {
+                path: '/health'
+                port: 8004
+                scheme: 'HTTP'
+              }
+              initialDelaySeconds: 30
+              periodSeconds: 60
+              timeoutSeconds: 10
+              failureThreshold: 5
+            }
+          ]
+        }
+      ]
+      scale: {
+        minReplicas: backendMinReplicas
+        maxReplicas: backendMaxReplicas
+        rules: [
+          {
+            name: 'http-scale'
+            http: {
+              metadata: {
+                concurrentRequests: '10'
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+
+resource frontendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
+  name: frontendContainerAppName
+  location: location
+  properties: {
+    managedEnvironmentId: containerAppEnvironment.id
+    configuration: {
+      activeRevisionsMode: 'Single'
+      ingress: {
+        external: true
+        targetPort: 80
+        allowInsecure: false
+        traffic: [
+          {
+            weight: 100
+            latestRevision: true
+          }
+        ]
+      }
+      registries: [
+        {
+          server: '${acrName}.azurecr.io'
+          username: acr.listCredentials().username
+          passwordSecretRef: 'acr-password'
+        }
+      ]
+      secrets: [
+        {
+          name: 'acr-password'
+          value: acr.listCredentials().passwords[0].value
+        }
+      ]
+    }
+    template: {
+      containers: [
+        {
+          name: frontendContainerAppName
+          image: '${acrName}.azurecr.io/${frontendContainerAppName}:latest'
+          resources: {
+            cpu: '0.25'
+            memory: '0.5Gi'
+          }
+          env: [
+            {
+              name: 'API_URL'
+              value: 'https://${backendContainerApp.properties.configuration.ingress.fqdn}'
+            }
+            {
+              name: 'ENVIRONMENT'
+              value: environmentName
+            }
+          ]
+          probes: [
+            {
+              type: 'Readiness'
+              httpGet: {
+                path: '/health'
+                port: 80
+                scheme: 'HTTP'
+              }
+              initialDelaySeconds: 10
+              periodSeconds: 30
+              timeoutSeconds: 10
+              successThreshold: 1
+              failureThreshold: 3
+            }
+            {
+              type: 'Liveness'
+              httpGet: {
+                path: '/health'
+                port: 80
+                scheme: 'HTTP'
+              }
+              initialDelaySeconds: 30
+              periodSeconds: 60
+              timeoutSeconds: 10
+              failureThreshold: 5
+            }
+          ]
+        }
+      ]
+      scale: {
+        minReplicas: frontendMinReplicas
+        maxReplicas: frontendMaxReplicas
+        rules: [
+          {
+            name: 'http-scale'
+            http: {
+              metadata: {
+                concurrentRequests: '20'
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+
+// Outputs
+output backendUrl string = 'https://${backendContainerApp.properties.configuration.ingress.fqdn}'
+output frontendUrl string = 'https://${frontendContainerApp.properties.configuration.ingress.fqdn}'
+output acrLoginServer string = '${acr.name}.azurecr.io'
+output appInsightsInstrumentationKey string = appInsights.properties.InstrumentationKey
+output appInsightsConnectionString string = appInsights.properties.ConnectionString
