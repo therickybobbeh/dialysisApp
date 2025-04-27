@@ -1,4 +1,4 @@
-// Peritoneal Dialysis Application - Azure Infrastructure
+// Peritoneal Dialysis Application - Complete Azure Infrastructure
 // This file defines all the Azure resources needed for the application
 
 // Parameters with default values
@@ -6,7 +6,7 @@
 param environmentName string = 'dev'
 
 @description('The Azure region for all resources')
-param location string = 'eastus2'
+param location string = 'centralus' // Using Central US as required for PostgreSQL flexible server
 
 @description('The SKU for Azure Container Registry')
 param acrSku string = 'Basic'
@@ -18,9 +18,6 @@ param postgresAdminLogin string
 @description('PostgreSQL administrator password')
 @secure()
 param postgresAdminPassword string
-
-@description('The PostgreSQL version')
-param postgresVersion string = '12'  // Updated from 11 to 12 which is supported
 
 @description('Application frontend and backend container names')
 param backendContainerAppName string = 'pd-management-backend'
@@ -35,7 +32,7 @@ param backendMaxReplicas int = 3
 // Generate a unique suffix based on resourceGroup().id
 var uniqueSuffix = uniqueString(resourceGroup().id)
 
-// Variables
+// Variables for resource naming
 var baseName = 'pd-management-${environmentName}'
 var acrName = replace('pdmgmtacr${environmentName}${uniqueSuffix}', '-', '')  // Made ACR name unique
 var postgresServerName = '${baseName}-db'
@@ -43,7 +40,7 @@ var containerAppEnvironmentName = '${baseName}-env'
 var logAnalyticsWorkspaceName = '${baseName}-logs'
 var appInsightsName = '${baseName}-insights'
 
-// Resource definitions
+// Log Analytics workspace for monitoring
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   name: logAnalyticsWorkspaceName
   location: location
@@ -58,6 +55,7 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10
   }
 }
 
+// Application Insights for application monitoring
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: appInsightsName
   location: location
@@ -70,6 +68,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
+// Azure Container Registry for storing container images
 resource acr 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = {
   name: acrName
   location: location
@@ -86,34 +85,37 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = {
   }
 }
 
-// Replaced PostgreSQL Flexible Server with Single Server
-resource postgresServer 'Microsoft.DBforPostgreSQL/servers@2017-12-01' = {
+// PostgreSQL Flexible Server - Essential for database storage
+resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
   name: postgresServerName
   location: location
   sku: {
-    name: 'B_Gen5_1'   // cheapest single-server SKU
-    tier: 'Basic'
-    capacity: 1
-    family: 'Gen5'
+    name: 'Standard_B2s' // Using a more cost-effective SKU for development
+    tier: 'Burstable'
   }
   properties: {
-    version: postgresVersion
+    version: '16' // Using PostgreSQL version 16
     administratorLogin: postgresAdminLogin
     administratorLoginPassword: postgresAdminPassword
-    storageProfile: {
-      storageMB: 32768          // 32 GB
+    storage: {
+      storageSizeGB: 32 // 32 GB storage for development
+    }
+    backup: {
       backupRetentionDays: 7
       geoRedundantBackup: 'Disabled'
     }
-    sslEnforcement: 'Enabled'
+    highAvailability: {
+      mode: 'Disabled' // Disabling HA for cost efficiency
+    }
   }
 
-  // create default db
-  resource database 'databases@2017-12-01' = {
+  // Create default database
+  resource database 'databases' = {
     name: 'pd_management'
   }
 
-  resource firewallRule 'firewallRules@2017-12-01' = {
+  // Configure firewall to allow Azure services
+  resource firewallRule 'firewallRules' = {
     name: 'AllowAzureServices'
     properties: {
       startIpAddress: '0.0.0.0'
@@ -122,6 +124,7 @@ resource postgresServer 'Microsoft.DBforPostgreSQL/servers@2017-12-01' = {
   }
 }
 
+// Container Apps Environment for hosting containerized applications
 resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2022-10-01' = {
   name: containerAppEnvironmentName
   location: location
@@ -136,6 +139,7 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2022-10-01' 
   }
 }
 
+// Backend Container App for hosting the Python FastAPI backend
 resource backendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
   name: backendContainerAppName
   location: location
@@ -200,7 +204,7 @@ resource backendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
             }
             {
               name: 'POSTGRES_HOST'
-              value: '${postgresServerName}.postgres.database.azure.com'
+              value: '${postgresServer.name}.postgres.database.azure.com'
             }
             {
               name: 'POSTGRES_USER'
@@ -278,6 +282,7 @@ resource backendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
   }
 }
 
+// Frontend Container App for hosting the Angular UI
 resource frontendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
   name: frontendContainerAppName
   location: location
@@ -380,5 +385,6 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
 output backendUrl string = 'https://${backendContainerApp.properties.configuration.ingress.fqdn}'
 output frontendUrl string = 'https://${frontendContainerApp.properties.configuration.ingress.fqdn}'
 output acrLoginServer string = '${acr.name}.azurecr.io'
+output postgresServerFqdn string = postgresServer.properties.fullyQualifiedDomainName
 output appInsightsInstrumentationKey string = appInsights.properties.InstrumentationKey
 output appInsightsConnectionString string = appInsights.properties.ConnectionString
