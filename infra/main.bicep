@@ -6,7 +6,7 @@
 param environmentName string = 'dev'
 
 @description('The Azure region for all resources')
-param location string = 'centralus' // Using Central US as required for PostgreSQL flexible server
+param location string = 'eastus2' // Changed back to eastus2 since existing resources are there
 
 @description('The SKU for Azure Container Registry')
 param acrSku string = 'Basic'
@@ -24,6 +24,9 @@ param useExistingPostgresServer bool = true
 
 @description('Name of the existing PostgreSQL server if useExistingPostgresServer is true')
 param existingPostgresServerName string = 'pdmanagementdevdb'
+
+@description('Indicates whether we should use the existing Log Analytics workspace')
+param useExistingLogAnalytics bool = true
 
 @description('Application frontend and backend container names')
 param backendContainerAppName string = 'pd-management-backend'
@@ -46,8 +49,13 @@ var containerAppEnvironmentName = '${baseName}-env'
 var logAnalyticsWorkspaceName = '${baseName}-logs'
 var appInsightsName = '${baseName}-insights'
 
+// Reference existing Log Analytics workspace
+resource existingLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' existing = if (useExistingLogAnalytics) {
+  name: logAnalyticsWorkspaceName
+}
+
 // Log Analytics workspace for monitoring
-resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
+resource newLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = if (!useExistingLogAnalytics) {
   name: logAnalyticsWorkspaceName
   location: location
   properties: {
@@ -68,7 +76,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   kind: 'web'
   properties: {
     Application_Type: 'web'
-    WorkspaceResourceId: logAnalyticsWorkspace.id
+    WorkspaceResourceId: useExistingLogAnalytics ? existingLogAnalyticsWorkspace.id : newLogAnalyticsWorkspace.id
     publicNetworkAccessForIngestion: 'Enabled'
     publicNetworkAccessForQuery: 'Enabled'
   }
@@ -143,8 +151,8 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2022-10-01' 
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
-        customerId: logAnalyticsWorkspace.properties.customerId
-        sharedKey: logAnalyticsWorkspace.listKeys().primarySharedKey
+        customerId: useExistingLogAnalytics ? existingLogAnalyticsWorkspace.properties.customerId : newLogAnalyticsWorkspace.properties.customerId
+        sharedKey: useExistingLogAnalytics ? existingLogAnalyticsWorkspace.listKeys().primarySharedKey : newLogAnalyticsWorkspace.listKeys().primarySharedKey
       }
     }
   }
@@ -193,7 +201,7 @@ resource backendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
           name: backendContainerAppName
           image: '${acr.name}.azurecr.io/${backendContainerAppName}:latest'
           resources: {
-            cpu: '0.5'
+            cpu: json('0.5') // Fixed: Changed string to number using json() for backward compatibility
             memory: '1.0Gi'
           }
           env: [
@@ -334,7 +342,7 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
           name: frontendContainerAppName
           image: '${acr.name}.azurecr.io/${frontendContainerAppName}:latest'
           resources: {
-            cpu: '0.25'
+            cpu: json('0.25') // Fixed: Changed string to number using json() for backward compatibility
             memory: '0.5Gi'
           }
           env: [
