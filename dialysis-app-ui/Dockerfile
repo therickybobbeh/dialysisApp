@@ -26,6 +26,16 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy built assets from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
+# Copy a startup script to replace environment variables in the nginx config
+COPY --from=builder /app/src/environments/environment.prod.js /usr/share/nginx/html/environments/
+
+# Create a startup script to inject environment variables
+RUN echo '#!/bin/sh \n\
+envsubst < /etc/nginx/conf.d/default.conf > /etc/nginx/conf.d/default.conf.tmp \n\
+mv /etc/nginx/conf.d/default.conf.tmp /etc/nginx/conf.d/default.conf \n\
+nginx -g "daemon off;"' > /docker-entrypoint.sh && \
+chmod +x /docker-entrypoint.sh
+
 # Create required directories with proper permissions for non-root operation
 RUN mkdir -p /tmp/nginx/client-body && \
     mkdir -p /var/run && \
@@ -33,6 +43,7 @@ RUN mkdir -p /tmp/nginx/client-body && \
     chmod -R 777 /var/run && \
     chmod -R 777 /var/cache/nginx && \
     chmod -R 777 /tmp/nginx && \
+    chmod -R 777 /etc/nginx/conf.d && \
     # Update nginx config to use accessible paths
     sed -i 's!/var/run/nginx.pid!/tmp/nginx.pid!g' /etc/nginx/nginx.conf && \
     sed -i 's!user nginx!#user nginx!g' /etc/nginx/nginx.conf && \
@@ -40,7 +51,7 @@ RUN mkdir -p /tmp/nginx/client-body && \
     # Create non-root user
     addgroup -g 1000 -S appgroup && \
     adduser -u 1000 -S appuser -G appgroup && \
-    chown -R appuser:appgroup /usr/share/nginx/html /etc/nginx/conf.d
+    chown -R appuser:appgroup /usr/share/nginx/html /etc/nginx/conf.d /docker-entrypoint.sh
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
@@ -52,5 +63,5 @@ USER appuser
 # Expose port 80
 EXPOSE 80
 
-# Start NGINX
-CMD ["nginx", "-g", "daemon off;"]
+# Start with our entrypoint script
+CMD ["/docker-entrypoint.sh"]
