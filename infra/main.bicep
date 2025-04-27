@@ -34,12 +34,15 @@ param useInitialPlaceholderImages bool = true
 @description('Application frontend and backend container names')
 param backendContainerAppName string = 'pd-management-backend'
 param frontendContainerAppName string = 'pd-management-frontend'
+param hapiFhirServerName string = 'pd-management-hapi-fhir'
 
 @description('Minimum and maximum replicas for container apps')
 param frontendMinReplicas int = 1
 param frontendMaxReplicas int = 3
 param backendMinReplicas int = 1
 param backendMaxReplicas int = 3
+param hapiFhirMinReplicas int = 1
+param hapiFhirMaxReplicas int = 2
 
 // Generate a unique suffix based on resourceGroup().id
 var uniqueSuffix = uniqueString(resourceGroup().id)
@@ -56,6 +59,9 @@ var appInsightsName = '${baseName}-insights'
 // The mcr.microsoft.com/azuredocs/containerapps-helloworld is publicly available and can be used initially
 // The app will be updated with actual images after they are pushed to ACR
 var placeholderImage = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+
+// HAPI FHIR server image from Docker Hub
+var hapiFhirImage = 'hapiproject/hapi:latest'
 
 // Reference existing Log Analytics workspace
 resource existingLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' existing = if (useExistingLogAnalytics) {
@@ -151,6 +157,29 @@ resource newPostgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01
   }
 }
 
+// Storage account for persistent HAPI FHIR data
+resource hapiStorageAccount 'Microsoft.Storage/storageAccounts@2022-09-01' = {
+  name: toLower(replace('hapifhir${environmentName}${uniqueSuffix}', '-', ''))
+  location: location
+  kind: 'StorageV2'
+  sku: {
+    name: 'Standard_LRS'
+  }
+  properties: {
+    accessTier: 'Hot'
+    supportsHttpsTrafficOnly: true
+    minimumTlsVersion: 'TLS1_2'
+  }
+}
+
+// File share for HAPI FHIR data persistence
+resource hapiFileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2022-09-01' = {
+  name: '${hapiStorageAccount.name}/default/hapi-data'
+  properties: {
+    shareQuota: 5 // 5GB
+  }
+}
+
 // Container Apps Environment for hosting containerized applications
 resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2022-10-01' = {
   name: containerAppEnvironmentName
@@ -162,6 +191,102 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2022-10-01' 
         customerId: useExistingLogAnalytics ? existingLogAnalyticsWorkspace.properties.customerId : newLogAnalyticsWorkspace.properties.customerId
         sharedKey: useExistingLogAnalytics ? existingLogAnalyticsWorkspace.listKeys().primarySharedKey : newLogAnalyticsWorkspace.listKeys().primarySharedKey
       }
+    }
+  }
+}
+
+// HAPI FHIR Server Container App
+resource hapiFhirContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
+  name: hapiFhirServerName
+  location: location
+  properties: {
+    managedEnvironmentId: containerAppEnvironment.id
+    configuration: {
+      activeRevisionsMode: 'Single'
+      ingress: {
+        external: true
+        targetPort: 8080
+        allowInsecure: false
+        traffic: [
+          {
+            weight: 100
+            latestRevision: true
+          }
+        ]
+      }
+      secrets: [
+        {
+          name: 'storage-key'
+          value: hapiStorageAccount.listKeys().keys[0].value
+        }
+      ]
+    }
+    template: {
+      containers: [
+        {
+          name: hapiFhirServerName
+          image: hapiFhirImage
+          resources: {
+            cpu: json('1.0')
+            memory: '2.0Gi'
+          }
+          env: [
+            {
+              name: 'HAPI_FHIR_JPA_SERVER'
+              value: 'HAPI_JPA_SERVER'
+            }
+            {
+              name: 'SERVER_ADDRESS'
+              value: '0.0.0.0'
+            }
+            {
+              name: 'SERVER_PORT'
+              value: '8080'
+            }
+            {
+              name: 'SPRING_CONFIG_LOCATION'
+              value: 'file:///hapi-data/application.yaml'
+            }
+          ]
+          volumeMounts: [
+            {
+              volumeName: 'hapi-data'
+              mountPath: '/hapi-data'
+            }
+          ]
+        }
+      ]
+      scale: {
+        minReplicas: hapiFhirMinReplicas
+        maxReplicas: hapiFhirMaxReplicas
+      }
+      volumes: [
+        {
+          name: 'hapi-data'
+          storageType: 'AzureFile'
+          storageName: 'hapi-storage'
+        }
+      ]
+      volumeMounts: [
+        {
+          volumeName: 'hapi-data'
+          mountPath: '/hapi-data'
+        }
+      ]
+    }
+  }
+}
+
+// Storage config for HAPI FHIR server
+resource hapiStorage 'Microsoft.App/managedEnvironments/storages@2022-10-01' = {
+  name: 'hapi-storage'
+  parent: containerAppEnvironment
+  properties: {
+    azureFile: {
+      accountName: hapiStorageAccount.name
+      accountKey: hapiStorageAccount.listKeys().keys[0].value
+      shareName: 'hapi-data'
+      accessMode: 'ReadWrite'
     }
   }
 }
@@ -262,6 +387,11 @@ resource backendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
             {
               name: 'STRUCTURED_LOGGING'
               value: 'true'
+            }
+            // ADDING HAPI FHIR SERVER CONNECTION
+            {
+              name: 'HAPI_BASE_URL'
+              value: 'https://${hapiFhirContainerApp.properties.configuration.ingress.fqdn}/fhir/'
             }
           ]
           // Only add probes if we're not using placeholder images
@@ -415,6 +545,7 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
 // Outputs
 output backendUrl string = 'https://${backendContainerApp.properties.configuration.ingress.fqdn}'
 output frontendUrl string = 'https://${frontendContainerApp.properties.configuration.ingress.fqdn}'
+output hapiFhirUrl string = 'https://${hapiFhirContainerApp.properties.configuration.ingress.fqdn}'
 output acrLoginServer string = '${acr.name}.azurecr.io'
 output postgresServerFqdn string = useExistingPostgresServer 
   ? (existingPostgres.properties.fullyQualifiedDomainName ?? '${existingPostgres.name}.postgres.database.azure.com')

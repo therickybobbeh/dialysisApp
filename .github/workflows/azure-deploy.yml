@@ -136,29 +136,33 @@ jobs:
         with:
           inlineScript: |
             echo "Deploying infrastructure with Bicep..."
-            DEPLOYMENT_OUTPUT=$(az deployment group create \
+            # Execute the deployment and save output to a JSON file to avoid shell parsing issues
+            az deployment group create \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --template-file infra/main.bicep \
               --parameters environmentName=${{ env.ENVIRONMENT }} \
-                          location=${{ env.AZURE_LOCATION }} \
-                          postgresAdminLogin=${{ secrets.POSTGRES_ADMIN_USER }} \
-                          postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} \
-                          useInitialPlaceholderImages=true \
-              --query properties.outputs)
+              --parameters location=${{ env.AZURE_LOCATION }} \
+              --parameters postgresAdminLogin="${{ secrets.POSTGRES_ADMIN_USER }}" \
+              --parameters postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+              --parameters useInitialPlaceholderImages=true \
+              --output json > deployment-output.json
             
-            # Extract important outputs for later steps
-            ACR_LOGIN_SERVER=$(echo $DEPLOYMENT_OUTPUT | jq -r '.acrLoginServer.value')
-            BACKEND_URL=$(echo $DEPLOYMENT_OUTPUT | jq -r '.backendUrl.value')
-            FRONTEND_URL=$(echo $DEPLOYMENT_OUTPUT | jq -r '.frontendUrl.value')
+            # Extract important outputs using jq from the file instead of directly from command output
+            ACR_LOGIN_SERVER=$(jq -r '.properties.outputs.acrLoginServer.value' deployment-output.json)
+            BACKEND_URL=$(jq -r '.properties.outputs.backendUrl.value' deployment-output.json)
+            FRONTEND_URL=$(jq -r '.properties.outputs.frontendUrl.value' deployment-output.json)
+            HAPI_FHIR_URL=$(jq -r '.properties.outputs.hapiFhirUrl.value' deployment-output.json || echo "")
             
             echo "acrLoginServer=$ACR_LOGIN_SERVER" >> $GITHUB_OUTPUT
             echo "backendUrl=$BACKEND_URL" >> $GITHUB_OUTPUT
             echo "frontendUrl=$FRONTEND_URL" >> $GITHUB_OUTPUT
+            echo "hapiFhirUrl=$HAPI_FHIR_URL" >> $GITHUB_OUTPUT
             
             # Also set as environment variables for this job
             echo "ACR_LOGIN_SERVER=$ACR_LOGIN_SERVER" >> $GITHUB_ENV
             echo "BACKEND_URL=$BACKEND_URL" >> $GITHUB_ENV
             echo "FRONTEND_URL=$FRONTEND_URL" >> $GITHUB_ENV
+            echo "HAPI_FHIR_URL=$HAPI_FHIR_URL" >> $GITHUB_ENV
       
       - name: Wait for deployment to complete
         uses: azure/CLI@v1
@@ -260,15 +264,29 @@ jobs:
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --template-file infra/main.bicep \
               --parameters environmentName=${{ env.ENVIRONMENT }} \
-                          location=${{ env.AZURE_LOCATION }} \
-                          postgresAdminLogin=${{ secrets.POSTGRES_ADMIN_USER }} \
-                          postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} \
-                          useInitialPlaceholderImages=false
+              --parameters location=${{ env.AZURE_LOCATION }} \
+              --parameters postgresAdminLogin="${{ secrets.POSTGRES_ADMIN_USER }}" \
+              --parameters postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+              --parameters useInitialPlaceholderImages=false \
+              --output json > update-output.json
+            
+            # Extract URLs in case they changed
+            BACKEND_URL=$(jq -r '.properties.outputs.backendUrl.value' update-output.json)
+            FRONTEND_URL=$(jq -r '.properties.outputs.frontendUrl.value' update-output.json)
+            HAPI_FHIR_URL=$(jq -r '.properties.outputs.hapiFhirUrl.value' update-output.json || echo "")
+            
+            # Set for the final output step
+            echo "BACKEND_URL=$BACKEND_URL" >> $GITHUB_ENV
+            echo "FRONTEND_URL=$FRONTEND_URL" >> $GITHUB_ENV
+            echo "HAPI_FHIR_URL=$HAPI_FHIR_URL" >> $GITHUB_ENV
       
       - name: Output application URLs
         uses: azure/CLI@v1
         with:
           inlineScript: |
             echo "Deployment complete!"
-            echo "Backend API URL: ${{ needs.deploy-infrastructure.outputs.backendUrl }}"
-            echo "Frontend URL: ${{ needs.deploy-infrastructure.outputs.frontendUrl }}"
+            echo "Backend API URL: ${{ env.BACKEND_URL }}"
+            echo "Frontend URL: ${{ env.FRONTEND_URL }}"
+            if [ ! -z "${{ env.HAPI_FHIR_URL }}" ]; then
+              echo "HAPI FHIR URL: ${{ env.HAPI_FHIR_URL }}"
+            fi
