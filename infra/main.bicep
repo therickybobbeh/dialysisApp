@@ -19,6 +19,12 @@ param postgresAdminLogin string
 @secure()
 param postgresAdminPassword string
 
+@description('Use existing PostgreSQL server rather than creating a new one')
+param useExistingPostgresServer bool = true
+
+@description('Name of the existing PostgreSQL server if useExistingPostgresServer is true')
+param existingPostgresServerName string = 'pdmanagementdevdb'
+
 @description('Application frontend and backend container names')
 param backendContainerAppName string = 'pd-management-backend'
 param frontendContainerAppName string = 'pd-management-frontend'
@@ -35,7 +41,7 @@ var uniqueSuffix = uniqueString(resourceGroup().id)
 // Variables for resource naming
 var baseName = 'pd-management-${environmentName}'
 var acrName = replace('pdmgmtacr${environmentName}${uniqueSuffix}', '-', '')  // Made ACR name unique
-var postgresServerName = '${baseName}-db'
+var postgresServerName = useExistingPostgresServer ? existingPostgresServerName : '${baseName}-db'
 var containerAppEnvironmentName = '${baseName}-env'
 var logAnalyticsWorkspaceName = '${baseName}-logs'
 var appInsightsName = '${baseName}-insights'
@@ -85,8 +91,13 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = {
   }
 }
 
-// PostgreSQL Flexible Server - Essential for database storage
-resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
+// Reference existing PostgreSQL server
+resource existingPostgres 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' existing = if (useExistingPostgresServer) {
+  name: existingPostgresServerName
+}
+
+// PostgreSQL Flexible Server - Only create if not using existing
+resource newPostgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = if (!useExistingPostgresServer) {
   name: postgresServerName
   location: location
   sku: {
@@ -204,7 +215,9 @@ resource backendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
             }
             {
               name: 'POSTGRES_HOST'
-              value: '${postgresServer.name}.postgres.database.azure.com'
+              value: useExistingPostgresServer 
+              ? '${existingPostgres.name}.postgres.database.azure.com'
+              : '${newPostgresServer.name}.postgres.database.azure.com'
             }
             {
               name: 'POSTGRES_USER'
@@ -385,6 +398,8 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
 output backendUrl string = 'https://${backendContainerApp.properties.configuration.ingress.fqdn}'
 output frontendUrl string = 'https://${frontendContainerApp.properties.configuration.ingress.fqdn}'
 output acrLoginServer string = '${acr.name}.azurecr.io'
-output postgresServerFqdn string = postgresServer.properties.fullyQualifiedDomainName
+output postgresServerFqdn string = useExistingPostgresServer 
+  ? (existingPostgres.properties.fullyQualifiedDomainName ?? '${existingPostgres.name}.postgres.database.azure.com')
+  : newPostgresServer.properties.fullyQualifiedDomainName
 output appInsightsInstrumentationKey string = appInsights.properties.InstrumentationKey
 output appInsightsConnectionString string = appInsights.properties.ConnectionString
