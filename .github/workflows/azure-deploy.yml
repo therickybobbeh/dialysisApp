@@ -16,6 +16,11 @@ on:
         - dev
         - prod
 
+# Add permissions block for OIDC authentication
+permissions:
+  id-token: write
+  contents: read
+
 env:
   # Environment Variables
   AZURE_RESOURCE_GROUP: pd-management-${{ github.event.inputs.environment || 'dev' }}-rg
