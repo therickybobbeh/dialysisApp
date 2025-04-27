@@ -28,6 +28,9 @@ param existingPostgresServerName string = 'pdmanagementdevdb'
 @description('Indicates whether we should use the existing Log Analytics workspace')
 param useExistingLogAnalytics bool = true
 
+@description('Use placeholder images for initial deployment (true) or expect images to exist (false)')
+param useInitialPlaceholderImages bool = true
+
 @description('Application frontend and backend container names')
 param backendContainerAppName string = 'pd-management-backend'
 param frontendContainerAppName string = 'pd-management-frontend'
@@ -48,6 +51,11 @@ var postgresServerName = useExistingPostgresServer ? existingPostgresServerName 
 var containerAppEnvironmentName = '${baseName}-env'
 var logAnalyticsWorkspaceName = '${baseName}-logs'
 var appInsightsName = '${baseName}-insights'
+
+// A placeholder image to use for initial deployment
+// The mcr.microsoft.com/azuredocs/containerapps-helloworld is publicly available and can be used initially
+// The app will be updated with actual images after they are pushed to ACR
+var placeholderImage = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 
 // Reference existing Log Analytics workspace
 resource existingLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' existing = if (useExistingLogAnalytics) {
@@ -168,7 +176,7 @@ resource backendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
       activeRevisionsMode: 'Single'
       ingress: {
         external: true
-        targetPort: 8004
+        targetPort: useInitialPlaceholderImages ? 80 : 8004 // The placeholder uses port 80, our app uses 8004
         allowInsecure: false
         traffic: [
           {
@@ -177,14 +185,14 @@ resource backendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
           }
         ]
       }
-      registries: [
+      registries: useInitialPlaceholderImages ? [] : [
         {
           server: '${acr.name}.azurecr.io'
           username: acr.listCredentials().username
           passwordSecretRef: 'acr-password'
         }
       ]
-      secrets: [
+      secrets: useInitialPlaceholderImages ? [] : [
         {
           name: 'acr-password'
           value: acr.listCredentials().passwords[0].value
@@ -199,12 +207,12 @@ resource backendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
       containers: [
         {
           name: backendContainerAppName
-          image: '${acr.name}.azurecr.io/${backendContainerAppName}:latest'
+          image: useInitialPlaceholderImages ? placeholderImage : '${acr.name}.azurecr.io/${backendContainerAppName}:latest'
           resources: {
             cpu: json('0.5') // Fixed: Changed string to number using json() for backward compatibility
             memory: '1.0Gi'
           }
-          env: [
+          env: useInitialPlaceholderImages ? [] : [
             {
               name: 'AZURE_DEPLOYMENT'
               value: 'true'
@@ -256,7 +264,8 @@ resource backendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
               value: 'true'
             }
           ]
-          probes: [
+          // Only add probes if we're not using placeholder images
+          probes: useInitialPlaceholderImages ? [] : [
             {
               type: 'Readiness'
               httpGet: {
@@ -313,7 +322,7 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
       activeRevisionsMode: 'Single'
       ingress: {
         external: true
-        targetPort: 80
+        targetPort: 80 // Both the placeholder and our app use port 80
         allowInsecure: false
         traffic: [
           {
@@ -322,14 +331,14 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
           }
         ]
       }
-      registries: [
+      registries: useInitialPlaceholderImages ? [] : [
         {
           server: '${acr.name}.azurecr.io'
           username: acr.listCredentials().username
           passwordSecretRef: 'acr-password'
         }
       ]
-      secrets: [
+      secrets: useInitialPlaceholderImages ? [] : [
         {
           name: 'acr-password'
           value: acr.listCredentials().passwords[0].value
@@ -340,12 +349,12 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
       containers: [
         {
           name: frontendContainerAppName
-          image: '${acr.name}.azurecr.io/${frontendContainerAppName}:latest'
+          image: useInitialPlaceholderImages ? placeholderImage : '${acr.name}.azurecr.io/${frontendContainerAppName}:latest'
           resources: {
             cpu: json('0.25') // Fixed: Changed string to number using json() for backward compatibility
             memory: '0.5Gi'
           }
-          env: [
+          env: useInitialPlaceholderImages ? [] : [
             {
               name: 'API_URL'
               value: 'https://${backendContainerApp.properties.configuration.ingress.fqdn}'
@@ -355,7 +364,8 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
               value: environmentName
             }
           ]
-          probes: [
+          // Only add probes if we're not using placeholder images
+          probes: useInitialPlaceholderImages ? [] : [
             {
               type: 'Readiness'
               httpGet: {

@@ -24,7 +24,7 @@ permissions:
 env:
   # Environment Variables
   AZURE_RESOURCE_GROUP: pd-management-${{ github.event.inputs.environment || 'dev' }}
-  AZURE_LOCATION: eastus2  # Changed back to eastus2 to match existing resources
+  AZURE_LOCATION: eastus2  # Using eastus2 to match existing resources
   ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
   FRONTEND_APP_NAME: pd-management-frontend
   BACKEND_APP_NAME: pd-management-backend
@@ -82,11 +82,17 @@ jobs:
           # npm run test
           echo "Tests skipped for now"
 
-  deploy-to-azure:
+  deploy-infrastructure:
     needs: build-and-test
     if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment || 'dev' }}
+    outputs:
+      acrLoginServer: ${{ steps.deploy-infra.outputs.acrLoginServer }}
+      acrName: ${{ steps.get-acr.outputs.acrName }}
+      backendUrl: ${{ steps.deploy-infra.outputs.backendUrl }}
+      frontendUrl: ${{ steps.deploy-infra.outputs.frontendUrl }}
+      
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -121,7 +127,8 @@ jobs:
               --parameters environmentName=${{ env.ENVIRONMENT }} \
                           location=${{ env.AZURE_LOCATION }} \
                           postgresAdminLogin=${{ secrets.POSTGRES_ADMIN_USER }} \
-                          postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }}
+                          postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} \
+                          useInitialPlaceholderImages=true
             
       - name: Deploy infrastructure with Bicep
         uses: azure/CLI@v1
@@ -136,13 +143,22 @@ jobs:
                           location=${{ env.AZURE_LOCATION }} \
                           postgresAdminLogin=${{ secrets.POSTGRES_ADMIN_USER }} \
                           postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} \
+                          useInitialPlaceholderImages=true \
               --query properties.outputs)
             
-            # Extract important outputs and set as environment variables for later steps
-            echo "ACR_LOGIN_SERVER=$(echo $DEPLOYMENT_OUTPUT | jq -r '.acrLoginServer.value')" >> $GITHUB_ENV
-            echo "BACKEND_URL=$(echo $DEPLOYMENT_OUTPUT | jq -r '.backendUrl.value')" >> $GITHUB_ENV
-            echo "FRONTEND_URL=$(echo $DEPLOYMENT_OUTPUT | jq -r '.frontendUrl.value')" >> $GITHUB_ENV
-            echo "APP_INSIGHTS_CONNECTION_STRING=$(echo $DEPLOYMENT_OUTPUT | jq -r '.appInsightsConnectionString.value')" >> $GITHUB_ENV
+            # Extract important outputs for later steps
+            ACR_LOGIN_SERVER=$(echo $DEPLOYMENT_OUTPUT | jq -r '.acrLoginServer.value')
+            BACKEND_URL=$(echo $DEPLOYMENT_OUTPUT | jq -r '.backendUrl.value')
+            FRONTEND_URL=$(echo $DEPLOYMENT_OUTPUT | jq -r '.frontendUrl.value')
+            
+            echo "acrLoginServer=$ACR_LOGIN_SERVER" >> $GITHUB_OUTPUT
+            echo "backendUrl=$BACKEND_URL" >> $GITHUB_OUTPUT
+            echo "frontendUrl=$FRONTEND_URL" >> $GITHUB_OUTPUT
+            
+            # Also set as environment variables for this job
+            echo "ACR_LOGIN_SERVER=$ACR_LOGIN_SERVER" >> $GITHUB_ENV
+            echo "BACKEND_URL=$BACKEND_URL" >> $GITHUB_ENV
+            echo "FRONTEND_URL=$FRONTEND_URL" >> $GITHUB_ENV
       
       - name: Wait for deployment to complete
         uses: azure/CLI@v1
@@ -159,21 +175,32 @@ jobs:
         id: get-acr
         with:
           inlineScript: |
-            # Get ACR name from the deployment output or list all ACRs if not available
-            if [ -z "$ACR_LOGIN_SERVER" ]; then
-              ACR_NAME=$(az acr list --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query "[0].name" -o tsv)
-              echo "ACR_NAME=$ACR_NAME" >> $GITHUB_ENV
-              echo "ACR_LOGIN_SERVER=$ACR_NAME.azurecr.io" >> $GITHUB_ENV
-            else
-              ACR_NAME=${ACR_LOGIN_SERVER/.azurecr.io/}
-              echo "ACR_NAME=$ACR_NAME" >> $GITHUB_ENV
-            fi
+            # Get ACR name from the deployment output
+            ACR_NAME=${ACR_LOGIN_SERVER/.azurecr.io/}
+            echo "ACR_NAME=$ACR_NAME" >> $GITHUB_ENV
+            echo "acrName=$ACR_NAME" >> $GITHUB_OUTPUT
+            
+  build-and-push-images:
+    needs: deploy-infrastructure
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       
       - name: Get ACR credentials
         id: get-acr-credentials
         uses: azure/CLI@v1
         with:
           inlineScript: |
+            ACR_NAME=${{ needs.deploy-infrastructure.outputs.acrName }}
             ACR_USERNAME=$(az acr credential show --name $ACR_NAME --query username -o tsv)
             ACR_PASSWORD=$(az acr credential show --name $ACR_NAME --query passwords[0].value -o tsv)
             echo "ACR_USERNAME=$ACR_USERNAME" >> $GITHUB_OUTPUT
@@ -185,7 +212,7 @@ jobs:
       - name: Login to Azure Container Registry
         uses: docker/login-action@v2
         with:
-          registry: ${{ env.ACR_LOGIN_SERVER }}
+          registry: ${{ needs.deploy-infrastructure.outputs.acrLoginServer }}
           username: ${{ steps.get-acr-credentials.outputs.ACR_USERNAME }}
           password: ${{ steps.get-acr-credentials.outputs.ACR_PASSWORD }}
       
@@ -195,9 +222,9 @@ jobs:
           context: .
           file: ./backend/Dockerfile
           push: true
-          tags: ${{ env.ACR_LOGIN_SERVER }}/${{ env.BACKEND_APP_NAME }}:${{ github.sha }},${{ env.ACR_LOGIN_SERVER }}/${{ env.BACKEND_APP_NAME }}:latest
-          cache-from: type=registry,ref=${{ env.ACR_LOGIN_SERVER }}/${{ env.BACKEND_APP_NAME }}:cache
-          cache-to: type=registry,ref=${{ env.ACR_LOGIN_SERVER }}/${{ env.BACKEND_APP_NAME }}:cache,mode=max
+          tags: ${{ needs.deploy-infrastructure.outputs.acrLoginServer }}/${{ env.BACKEND_APP_NAME }}:${{ github.sha }},${{ needs.deploy-infrastructure.outputs.acrLoginServer }}/${{ env.BACKEND_APP_NAME }}:latest
+          cache-from: type=registry,ref=${{ needs.deploy-infrastructure.outputs.acrLoginServer }}/${{ env.BACKEND_APP_NAME }}:cache
+          cache-to: type=registry,ref=${{ needs.deploy-infrastructure.outputs.acrLoginServer }}/${{ env.BACKEND_APP_NAME }}:cache,mode=max
       
       - name: Build and push Frontend Docker image
         uses: docker/build-push-action@v4
@@ -205,14 +232,43 @@ jobs:
           context: ./dialysis-app-ui
           file: ./dialysis-app-ui/Dockerfile
           push: true
-          tags: ${{ env.ACR_LOGIN_SERVER }}/${{ env.FRONTEND_APP_NAME }}:${{ github.sha }},${{ env.ACR_LOGIN_SERVER }}/${{ env.FRONTEND_APP_NAME }}:latest
-          cache-from: type=registry,ref=${{ env.ACR_LOGIN_SERVER }}/${{ env.FRONTEND_APP_NAME }}:cache
-          cache-to: type=registry,ref=${{ env.ACR_LOGIN_SERVER }}/${{ env.FRONTEND_APP_NAME }}:cache,mode=max
+          tags: ${{ needs.deploy-infrastructure.outputs.acrLoginServer }}/${{ env.FRONTEND_APP_NAME }}:${{ github.sha }},${{ needs.deploy-infrastructure.outputs.acrLoginServer }}/${{ env.FRONTEND_APP_NAME }}:latest
+          cache-from: type=registry,ref=${{ needs.deploy-infrastructure.outputs.acrLoginServer }}/${{ env.FRONTEND_APP_NAME }}:cache
+          cache-to: type=registry,ref=${{ needs.deploy-infrastructure.outputs.acrLoginServer }}/${{ env.FRONTEND_APP_NAME }}:cache,mode=max
 
+  update-container-apps:
+    needs: [deploy-infrastructure, build-and-push-images]
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Update Container Apps to use custom images
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Now update the container apps to use our real images instead of the placeholder
+            az deployment group create \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --template-file infra/main.bicep \
+              --parameters environmentName=${{ env.ENVIRONMENT }} \
+                          location=${{ env.AZURE_LOCATION }} \
+                          postgresAdminLogin=${{ secrets.POSTGRES_ADMIN_USER }} \
+                          postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} \
+                          useInitialPlaceholderImages=false
+      
       - name: Output application URLs
         uses: azure/CLI@v1
         with:
           inlineScript: |
             echo "Deployment complete!"
-            echo "Backend API URL: ${{ env.BACKEND_URL }}"
-            echo "Frontend URL: ${{ env.FRONTEND_URL }}"
+            echo "Backend API URL: ${{ needs.deploy-infrastructure.outputs.backendUrl }}"
+            echo "Frontend URL: ${{ needs.deploy-infrastructure.outputs.frontendUrl }}"
