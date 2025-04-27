@@ -20,7 +20,7 @@ param postgresAdminLogin string
 param postgresAdminPassword string
 
 @description('The PostgreSQL version')
-param postgresVersion string = '11'  // Updated to a supported version
+param postgresVersion string = '12'  // Updated from 11 to 12 which is supported
 
 @description('Application frontend and backend container names')
 param backendContainerAppName string = 'pd-management-backend'
@@ -156,7 +156,7 @@ resource backendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
       }
       registries: [
         {
-          server: '${acrName}.azurecr.io'
+          server: '${acr.name}.azurecr.io'
           username: acr.listCredentials().username
           passwordSecretRef: 'acr-password'
         }
@@ -176,7 +176,7 @@ resource backendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
       containers: [
         {
           name: backendContainerAppName
-          image: '${acrName}.azurecr.io/${backendContainerAppName}:latest'
+          image: '${acr.name}.azurecr.io/${backendContainerAppName}:latest'
           resources: {
             cpu: '0.5'
             memory: '1.0Gi'
@@ -298,7 +298,7 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
       }
       registries: [
         {
-          server: '${acrName}.azurecr.io'
+          server: '${acr.name}.azurecr.io'
           username: acr.listCredentials().username
           passwordSecretRef: 'acr-password'
         }
@@ -314,7 +314,7 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
       containers: [
         {
           name: frontendContainerAppName
-          image: '${acrName}.azurecr.io/${frontendContainerAppName}:latest'
+          image: '${acr.name}.azurecr.io/${frontendContainerAppName}:latest'
           resources: {
             cpu: '0.25'
             memory: '0.5Gi'
