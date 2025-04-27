@@ -23,7 +23,7 @@ permissions:
 
 env:
   # Environment Variables
-  AZURE_RESOURCE_GROUP: pd-management-${{ github.event.inputs.environment || 'dev' }}-rg
+  AZURE_RESOURCE_GROUP: pd-management-${{ github.event.inputs.environment || 'dev' }}
   AZURE_LOCATION: eastus2
   ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
   FRONTEND_APP_NAME: pd-management-frontend
