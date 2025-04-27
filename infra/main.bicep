@@ -172,9 +172,16 @@ resource hapiStorageAccount 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   }
 }
 
-// File share for HAPI FHIR data persistence
+// File service resource for the HAPI FHIR storage account
+resource hapiFileService 'Microsoft.Storage/storageAccounts/fileServices@2022-09-01' = {
+  name: 'default'
+  parent: hapiStorageAccount
+}
+
+// File share for HAPI FHIR data persistence - now using parent property
 resource hapiFileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2022-09-01' = {
-  name: '${hapiStorageAccount.name}/default/hapi-data'
+  name: 'hapi-data'
+  parent: hapiFileService
   properties: {
     shareQuota: 5 // 5GB
   }
@@ -191,6 +198,20 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2022-10-01' 
         customerId: useExistingLogAnalytics ? existingLogAnalyticsWorkspace.properties.customerId : newLogAnalyticsWorkspace.properties.customerId
         sharedKey: useExistingLogAnalytics ? existingLogAnalyticsWorkspace.listKeys().primarySharedKey : newLogAnalyticsWorkspace.listKeys().primarySharedKey
       }
+    }
+  }
+}
+
+// Storage config for HAPI FHIR server
+resource hapiStorage 'Microsoft.App/managedEnvironments/storages@2022-10-01' = {
+  name: 'hapi-storage'
+  parent: containerAppEnvironment
+  properties: {
+    azureFile: {
+      accountName: hapiStorageAccount.name
+      accountKey: hapiStorageAccount.listKeys().keys[0].value
+      shareName: hapiFileShare.name
+      accessMode: 'ReadWrite'
     }
   }
 }
@@ -267,26 +288,6 @@ resource hapiFhirContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
           storageName: 'hapi-storage'
         }
       ]
-      volumeMounts: [
-        {
-          volumeName: 'hapi-data'
-          mountPath: '/hapi-data'
-        }
-      ]
-    }
-  }
-}
-
-// Storage config for HAPI FHIR server
-resource hapiStorage 'Microsoft.App/managedEnvironments/storages@2022-10-01' = {
-  name: 'hapi-storage'
-  parent: containerAppEnvironment
-  properties: {
-    azureFile: {
-      accountName: hapiStorageAccount.name
-      accountKey: hapiStorageAccount.listKeys().keys[0].value
-      shareName: 'hapi-data'
-      accessMode: 'ReadWrite'
     }
   }
 }
