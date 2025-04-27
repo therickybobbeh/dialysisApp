@@ -31,15 +31,17 @@ o	OAuth2-based authentication with JWT.
 
 o	Role-based access control (patients, providers).
 
-•	Deployment:
+•	Azure Deployment:
 
-o	backend (FastAPI).
+o	Container Apps for scalable microservices.
 
-o	Frontend built with React (Next.js).
+o	PostgreSQL Flexible Server for database.
 
-o	PostgreSQL database.
+o	Storage Account for HAPI FHIR data persistence.
 
-o	Dockerized deployment.
+o	Container Registry for Docker images.
+
+o	GitHub Actions CI/CD pipeline.
 
 •	Mockups:
 

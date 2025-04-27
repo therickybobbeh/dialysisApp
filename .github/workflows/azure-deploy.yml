@@ -105,22 +105,22 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       
-      # Add this step to register required resource providers
-      - name: Register required Azure resource providers
+      # Replace the registration step with a check step
+      - name: Check Azure resource provider status
         uses: azure/CLI@v1
         with:
           inlineScript: |
-            echo "Registering required Azure resource providers..."
-            az provider register --namespace Microsoft.Storage
-            az provider register --namespace Microsoft.App
-            az provider register --namespace Microsoft.OperationalInsights
-            az provider register --namespace Microsoft.Insights
-            az provider register --namespace Microsoft.ContainerRegistry
-            az provider register --namespace Microsoft.DBforPostgreSQL
+            echo "Checking status of required Azure resource providers..."
+            echo "Note: If any resource providers aren't registered, deployment might fail."
+            echo "In that case, please register them manually with an account that has sufficient permissions."
             
-            # Wait for registrations to complete
-            echo "Waiting for Microsoft.Storage registration to complete..."
-            az provider show -n Microsoft.Storage --query "registrationState" -o tsv
+            # Just check status without trying to register
+            echo "Microsoft.Storage status:"
+            az provider show -n Microsoft.Storage --query "registrationState" -o tsv || echo "Unable to check status"
+            echo "Microsoft.App status:"
+            az provider show -n Microsoft.App --query "registrationState" -o tsv || echo "Unable to check status"
+            echo "Microsoft.OperationalInsights status:"
+            az provider show -n Microsoft.OperationalInsights --query "registrationState" -o tsv || echo "Unable to check status"
           
       - name: Create resource group if not exists
         uses: azure/CLI@v1
