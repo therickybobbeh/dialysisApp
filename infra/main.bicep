@@ -19,15 +19,6 @@ param postgresAdminLogin string
 @secure()
 param postgresAdminPassword string
 
-@description('The SKU tier for the PostgreSQL Flexible Server')
-param postgresTier string = 'Burstable'
-
-@description('The SKU name for the PostgreSQL Flexible Server')
-param postgresSku string = 'Standard_B1ms'
-
-@description('The storage size for the PostgreSQL Flexible Server in GB')
-param postgresStorageSize int = 32
-
 @description('The PostgreSQL version')
 param postgresVersion string = '14'
 
@@ -92,34 +83,34 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = {
   }
 }
 
-resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
+// Replaced PostgreSQL Flexible Server with Single Server
+resource postgresServer 'Microsoft.DBforPostgreSQL/servers@2017-12-01' = {
   name: postgresServerName
   location: location
   sku: {
-    name: postgresSku
-    tier: postgresTier
+    name: 'B_Gen5_1'   // cheapest single-server SKU
+    tier: 'Basic'
+    capacity: 1
+    family: 'Gen5'
   }
   properties: {
     version: postgresVersion
     administratorLogin: postgresAdminLogin
     administratorLoginPassword: postgresAdminPassword
-    storage: {
-      storageSizeGB: postgresStorageSize
-    }
-    backup: {
+    storageProfile: {
+      storageMB: 32768          // 32 GB
       backupRetentionDays: 7
       geoRedundantBackup: 'Disabled'
     }
-    highAvailability: {
-      mode: 'Disabled'
-    }
+    sslEnforcement: 'Enabled'
   }
 
-  resource database 'databases@2022-12-01' = {
+  // create default db
+  resource database 'databases@2017-12-01' = {
     name: 'pd_management'
   }
 
-  resource firewallRule 'firewallRules@2022-12-01' = {
+  resource firewallRule 'firewallRules@2017-12-01' = {
     name: 'AllowAzureServices'
     properties: {
       startIpAddress: '0.0.0.0'
