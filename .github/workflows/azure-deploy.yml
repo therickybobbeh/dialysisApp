@@ -24,13 +24,14 @@ permissions:
 env:
   # Environment Variables
   AZURE_RESOURCE_GROUP: pd-management-${{ github.event.inputs.environment || 'dev' }}
-  AZURE_LOCATION: centralus  # Changed from eastus2 to centralus to match existing resources
+  AZURE_LOCATION: eastus2  # Changed back to eastus2 to match existing resources
   ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
   FRONTEND_APP_NAME: pd-management-frontend
   BACKEND_APP_NAME: pd-management-backend
   # Add the existing database server name
   POSTGRES_SERVER_NAME: pdmanagementdevdb
   USE_EXISTING_DB: true  # Flag to indicate we should use existing DB
+  USE_EXISTING_LOG_ANALYTICS: true  # Flag to indicate we should use existing Log Analytics workspace
 
 jobs:
   build-and-test:
