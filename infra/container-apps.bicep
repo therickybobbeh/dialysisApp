@@ -1,5 +1,5 @@
 // Peritoneal Dialysis Application - Azure Infrastructure
-// This file defines all the Azure resources needed for the application
+// Phase 2: Container Apps deployment
 
 // Parameters with default values
 @description('The environment name (dev, test, prod)')
@@ -8,8 +8,8 @@ param environmentName string = 'dev'
 @description('The Azure region for all resources')
 param location string = 'eastus2'
 
-@description('The SKU for Azure Container Registry')
-param acrSku string = 'Basic'
+@description('The name of the Azure Container Registry')
+param acrName string
 
 @description('PostgreSQL administrator login')
 @secure()
@@ -18,9 +18,6 @@ param postgresAdminLogin string
 @description('PostgreSQL administrator password')
 @secure()
 param postgresAdminPassword string
-
-@description('The PostgreSQL version')
-param postgresVersion string = '11'  // Updated to a supported version
 
 @description('Application frontend and backend container names')
 param backendContainerAppName string = 'pd-management-backend'
@@ -32,110 +29,31 @@ param frontendMaxReplicas int = 3
 param backendMinReplicas int = 1
 param backendMaxReplicas int = 3
 
-// Generate a unique suffix based on resourceGroup().id
-var uniqueSuffix = uniqueString(resourceGroup().id)
-
 // Variables
 var baseName = 'pd-management-${environmentName}'
-var acrName = replace('pdmgmtacr${environmentName}${uniqueSuffix}', '-', '')  // Made ACR name unique
 var postgresServerName = '${baseName}-db'
 var containerAppEnvironmentName = '${baseName}-env'
 var logAnalyticsWorkspaceName = '${baseName}-logs'
 var appInsightsName = '${baseName}-insights'
 
-// Resource definitions
-resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-  name: logAnalyticsWorkspaceName
-  location: location
-  properties: {
-    sku: {
-      name: 'PerGB2018'
-    }
-    retentionInDays: 30
-    features: {
-      enableLogAccessUsingOnlyResourcePermissions: true
-    }
-  }
-}
-
-resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: appInsightsName
-  location: location
-  kind: 'web'
-  properties: {
-    Application_Type: 'web'
-    WorkspaceResourceId: logAnalyticsWorkspace.id
-    publicNetworkAccessForIngestion: 'Enabled'
-    publicNetworkAccessForQuery: 'Enabled'
-  }
-}
-
-resource acr 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = {
+// Reference existing resources
+resource acr 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' existing = {
   name: acrName
-  location: location
-  sku: {
-    name: acrSku
-  }
-  properties: {
-    adminUserEnabled: true
-    anonymousPullEnabled: false
-    dataEndpointEnabled: false
-    networkRuleBypassOptions: 'AzureServices'
-    publicNetworkAccess: 'Enabled'
-    zoneRedundancy: 'Disabled'
-  }
 }
 
-// Replaced PostgreSQL Flexible Server with Single Server
-resource postgresServer 'Microsoft.DBforPostgreSQL/servers@2017-12-01' = {
-  name: postgresServerName
-  location: location
-  sku: {
-    name: 'B_Gen5_1'   // cheapest single-server SKU
-    tier: 'Basic'
-    capacity: 1
-    family: 'Gen5'
-  }
-  properties: {
-    version: postgresVersion
-    administratorLogin: postgresAdminLogin
-    administratorLoginPassword: postgresAdminPassword
-    storageProfile: {
-      storageMB: 32768          // 32 GB
-      backupRetentionDays: 7
-      geoRedundantBackup: 'Disabled'
-    }
-    sslEnforcement: 'Enabled'
-  }
-
-  // create default db
-  resource database 'databases@2017-12-01' = {
-    name: 'pd_management'
-  }
-
-  resource firewallRule 'firewallRules@2017-12-01' = {
-    name: 'AllowAzureServices'
-    properties: {
-      startIpAddress: '0.0.0.0'
-      endIpAddress: '0.0.0.0'
-    }
-  }
-}
-
-resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2022-10-01' = {
+resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2022-10-01' existing = {
   name: containerAppEnvironmentName
-  location: location
-  properties: {
-    appLogsConfiguration: {
-      destination: 'log-analytics'
-      logAnalyticsConfiguration: {
-        customerId: logAnalyticsWorkspace.properties.customerId
-        sharedKey: logAnalyticsWorkspace.listKeys().primarySharedKey
-      }
-    }
-  }
 }
 
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' existing = {
+  name: logAnalyticsWorkspaceName
+}
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
+  name: appInsightsName
+}
+
+// Deploy container apps
 resource backendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
   name: backendContainerAppName
   location: location
@@ -379,6 +297,3 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
 // Outputs
 output backendUrl string = 'https://${backendContainerApp.properties.configuration.ingress.fqdn}'
 output frontendUrl string = 'https://${frontendContainerApp.properties.configuration.ingress.fqdn}'
-output acrLoginServer string = '${acr.name}.azurecr.io'
-output appInsightsInstrumentationKey string = appInsights.properties.InstrumentationKey
-output appInsightsConnectionString string = appInsights.properties.ConnectionString
