@@ -17,17 +17,25 @@ COPY . .
 # Build the Angular application with production optimizations
 RUN npm run build -- --configuration production
 
+# Handle optional environment file using shell commands in the builder stage
+RUN mkdir -p /app/optional_files/ && \
+    if [ -f /app/src/environments/environment.prod.js ]; then \
+        cp /app/src/environments/environment.prod.js /app/optional_files/; \
+    else \
+        echo "// Environment file not found during build" > /app/optional_files/environment.prod.js; \
+    fi
+
 # Stage 2: Nginx runtime
 FROM nginx:1.25-alpine
+
+# Create necessary directories first
+RUN mkdir -p /usr/share/nginx/html/environments /etc/nginx/templates
 
 # Copy built assets from builder stage
 COPY --from=builder /app/dist/dialysis-app /usr/share/nginx/html
 
-# Create environments directory for runtime configuration
-RUN mkdir -p /usr/share/nginx/html/environments /etc/nginx/templates
-
-# Copy our environment script for runtime config if it exists
-COPY --from=builder /app/src/environments/environment.prod.js /usr/share/nginx/html/environments/ 2>/dev/null || :
+# Copy the environment file (will always exist now thanks to our handling in the builder stage)
+COPY --from=builder /app/optional_files/environment.prod.js /usr/share/nginx/html/environments/
 
 # Install envsubst to process environment variables
 RUN apk add --no-cache bash gettext
@@ -52,7 +60,7 @@ RUN mkdir -p /tmp/nginx/client-body && \
     sed -i 's!user nginx!#user nginx!g' /etc/nginx/nginx.conf && \
     sed -i 's!/var/cache/nginx!/tmp/nginx/cache!g' /etc/nginx/nginx.conf
 
-# COPY the new entrypoint
+# COPY the entrypoint script
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
