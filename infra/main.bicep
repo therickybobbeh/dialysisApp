@@ -29,7 +29,7 @@ param existingPostgresServerName string = 'pdmanagementdevdb'
 param useExistingLogAnalytics bool = true
 
 @description('Use placeholder images for initial deployment (true) or expect images to exist (false)')
-param useInitialPlaceholderImages bool = true
+param useInitialPlaceholderImages bool = false
 
 @description('Application frontend and backend container names')
 param backendContainerAppName string = 'pd-management-backend'
