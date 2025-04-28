@@ -487,7 +487,7 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
           }
           env: useInitialPlaceholderImages ? [] : [
             {
-              name: 'API_URL'
+              name: 'BACKEND_URL'
               value: 'https://${backendContainerApp.properties.configuration.ingress.fqdn}'
             }
             {
