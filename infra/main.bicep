@@ -495,8 +495,8 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2022-10-01' = {
               value: environmentName
             }
           ]
-          // Only add probes if we're not using placeholder images
-          probes: useInitialPlaceholderImages ? [] : [
+          // Always add probes even with placeholder images to ensure container health is properly monitored
+          probes: [
             {
               type: 'Readiness'
               httpGet: {

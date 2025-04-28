@@ -17,56 +17,32 @@ COPY . .
 # Build the Angular application with production optimizations
 RUN npm run build -- --configuration production
 
-# Handle optional environment file using shell commands in the builder stage
-RUN mkdir -p /app/optional_files/ && \
-    if [ -f /app/src/environments/environment.prod.js ]; then \
-        cp /app/src/environments/environment.prod.js /app/optional_files/; \
-    else \
-        echo "// Environment file not found during build" > /app/optional_files/environment.prod.js; \
-    fi
-
 # Stage 2: Nginx runtime
 FROM nginx:1.25-alpine
 
+# Install debugging tools
+RUN apk add --no-cache bash curl
+
 # Create necessary directories first
-RUN mkdir -p /usr/share/nginx/html/environments /etc/nginx/templates
+RUN mkdir -p /usr/share/nginx/html /etc/nginx/templates
 
-# Copy built assets from builder stage
-COPY --from=builder /app/dist/dialysis-app /usr/share/nginx/html
+# Copy built assets from builder stage to the nginx html directory
+# This is the critical part - make sure the Angular app files are copied correctly
+COPY --from=builder /app/dist/dialysis-app/* /usr/share/nginx/html/
 
-# Copy the environment file (will always exist now thanks to our handling in the builder stage)
-COPY --from=builder /app/optional_files/environment.prod.js /usr/share/nginx/html/environments/
-
-# Install envsubst to process environment variables
-RUN apk add --no-cache bash gettext
-
-# Copy nginx.conf to templates directory
+# Copy nginx configuration
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 # Set default BACKEND_URL value
 ENV BACKEND_URL=http://pd-management-backend
 
-# Create required directories with proper permissions for non-root operation
-RUN mkdir -p /tmp/nginx/client-body && \
-    mkdir -p /var/run && \
-    mkdir -p /var/cache/nginx && \
-    chmod -R 777 /var/run && \
-    chmod -R 777 /var/cache/nginx && \
-    chmod -R 777 /tmp/nginx && \
-    chmod -R 777 /etc/nginx/conf.d && \
-    chmod -R 777 /etc/nginx/templates && \
-    # Update nginx config to use accessible paths
-    sed -i 's!/var/run/nginx.pid!/tmp/nginx.pid!g' /etc/nginx/nginx.conf && \
-    sed -i 's!user nginx!#user nginx!g' /etc/nginx/nginx.conf && \
-    sed -i 's!/var/cache/nginx!/tmp/nginx/cache!g' /etc/nginx/nginx.conf
-
-# COPY the entrypoint script
+# Copy the entrypoint script
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-  CMD wget -q -O - http://localhost:80/health || exit 1
+# Add a healthcheck that verifies the /health endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:80/health || exit 1
 
 # Expose port 80
 EXPOSE 80
