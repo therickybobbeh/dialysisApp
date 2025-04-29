@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     DB_POOL_TIMEOUT: int = int(os.getenv("DB_POOL_TIMEOUT", 30))
     DB_POOL_RECYCLE: int = int(os.getenv("DB_POOL_RECYCLE", 1800))  # Recycle connections after 30 minutes
     DB_MAX_RETRIES: int = int(os.getenv("DB_MAX_RETRIES", 5))
+
+    # SSL Configuration for PostgreSQL
+    POSTGRES_USE_SSL: bool = os.getenv("POSTGRES_USE_SSL", "false").lower() == "true"
+    POSTGRES_SSL_MODE: str = os.getenv("POSTGRES_SSL_MODE", "require")
     
     # Azure Authentication Settings
     USE_MANAGED_IDENTITY: bool = os.getenv("USE_MANAGED_IDENTITY", "false").lower() == "true"

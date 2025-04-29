@@ -1,8 +1,8 @@
 # Use official Python image as a base
 FROM python:3.11
 
-# Install PostgreSQL client (for `pg_isready` and `psql`)
-RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
+# Install PostgreSQL client with SSL support for secure Azure connections
+RUN apt-get update && apt-get install -y postgresql-client ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory inside the container
 WORKDIR /app  

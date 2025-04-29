@@ -1,3 +1,5 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import time
@@ -43,6 +45,14 @@ def get_engine():
             
             # Update connection args with access token
             engine_config['connect_args']['password'] = access_token.token
+                # Add SSL configuration for Azure PostgreSQL Flexible Server
+                
+        if settings.AZURE_DEPLOYMENT:
+            # Enable SSL for Azure PostgreSQL connections
+            engine_config['connect_args']['sslmode'] = os.getenv('POSTGRES_SSL_MODE', 'require')
+            
+            # Log SSL configuration
+            logger.info(f"Configuring SSL for Azure PostgreSQL connection with mode: {engine_config['connect_args']['sslmode']}")
         
         logger.info(f"Creating database engine with pool size: {settings.DB_POOL_SIZE}")
         return create_engine(settings.DATABASE_URL, **engine_config)

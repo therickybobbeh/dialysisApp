@@ -32,6 +32,9 @@ env:
   POSTGRES_SERVER_NAME: pdmanagementdevdb
   USE_EXISTING_DB: true  # Flag to indicate we should use existing DB
   USE_EXISTING_LOG_ANALYTICS: true  # Flag to indicate we should use existing Log Analytics workspace
+  # Database SSL Configuration
+  POSTGRES_USE_SSL: "true"
+  POSTGRES_SSL_MODE: "require"
 
 jobs:
   build-and-test:

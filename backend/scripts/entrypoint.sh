@@ -12,9 +12,19 @@ echo "$LOG_PREFIX Initializing application..."
 if [ "$AZURE_DEPLOYMENT" = "true" ]; then
     echo "$LOG_PREFIX Running in Azure environment"
     
-    # Set up connection parameters from environment variables
-    export DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB"
-    echo "$LOG_PREFIX Database connection configured for Azure PostgreSQL"
+    # SSL Configuration for PostgreSQL Flexible Server
+    if [ "$POSTGRES_USE_SSL" = "true" ]; then
+        echo "$LOG_PREFIX Configuring SSL for PostgreSQL connection with mode: $POSTGRES_SSL_MODE"
+        export PGSSLMODE=$POSTGRES_SSL_MODE
+        
+        # Update the connection string to include SSL parameters
+        export DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB?sslmode=$POSTGRES_SSL_MODE"
+        echo "$LOG_PREFIX Database connection configured for Azure PostgreSQL with SSL"
+    else
+        # Set up regular connection parameters from environment variables
+        export DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB"
+        echo "$LOG_PREFIX Database connection configured for Azure PostgreSQL without SSL"
+    fi
     
     # Wait for max 5 minutes (30 * 10 seconds) for database to be ready
     MAX_RETRIES=30
